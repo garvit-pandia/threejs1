@@ -1,5 +1,43 @@
 # Changelog
 
+## Round 3 — interaction fixes (live feature sweep)
+
+A full browser-driven feature pass (all four camera presets via buttons and
+keyboard, sun slider, pause/speed, planner preview + dispatch, row selection,
+alert acknowledgement, marker hover tooltip, responsive matrix at
+1680/1366/1280/1024/900/480, then a 17-minute soak) surfaced two real defects
+and a first-paint polish item; all three are fixed here.
+
+### Fixed
+
+- **Preset highlight never cleared.** `setPreset` deselected via
+  `#topbar .seg:first-of-type button`, but `#brand` is the first `div` child of
+  `#topbar`, so no `.seg` is ever `:first-of-type` — the selector matched
+  nothing and `.on` accumulated on every preset button (all four lit after
+  clicking each once). Fixed to `#topbar .seg button`; exactly one preset pill
+  is lit at all times across clicks and keys 1–4. The same dead selector in the
+  600px media query had silently never applied either; it now does, and at
+  480px the seg buttons measure `8px 9px` with the top bar still one 52px row,
+  zero clipped children and no horizontal overflow.
+- **Canvas cursor stuck on `pointer`.** The hover hit branch set
+  `renderer.domElement.style.cursor` while the miss branch reset
+  `document.body.style.cursor` — mismatched targets, so the pointer cursor
+  never cleared after the first marker hover. The miss path now resets the
+  canvas itself; verified `pointer` on a marker, `''` off it.
+- **Shipment rows rendered empty for up to one UI tick.** Rows were created by
+  `refreshShipmentRows` but only filled by the 0.28s-throttled loop, so the
+  list flashed blank after boot and after each dispatch. `refreshShipmentRows`
+  now calls `updateShipmentRow(s)` when it registers a row; rows are complete
+  on creation.
+
+### Verified (dev server, 5180)
+
+`window.__app.ready === true`, `errors` empty; rows filled on first read after
+load; single `.on` preset across button and keyboard paths; hover tooltip
+renders on a paused marker and the cursor resets on leave; responsive matrix
+1680/1366/1280/1024/900/480 — top bar 52px single row, no clipping, no
+horizontal overflow.
+
 ## Round 1 — UI repair (critique verdict 4/10)
 
 First round of the critique-and-improve loop. A dedicated critic agent reviewed

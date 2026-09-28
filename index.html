@@ -330,7 +330,7 @@
     .form{grid-template-columns:1fr 1fr}
   }
   @media (max-width:600px){
-    #topbar .seg:first-of-type button{padding:8px 9px}
+    #topbar .seg button{padding:8px 9px}
     #brand h1{font-size:13px}
     .panel-head h2{font-size:11px}
     #ui{height:70%}
@@ -1560,6 +1560,7 @@ function refreshShipmentRows(){
       eta: el.querySelector('.eta'), pct: el.querySelector('.pct'), riskT: el.querySelector('.risk-t'),
       bar: el.querySelector('.pbar > i'), risk: el.querySelector('.riskbar'),
     });
+    updateShipmentRow(s);
   }
   document.getElementById('ship-count').textContent = app.shipments.length + ' tracked';
 }
@@ -1789,7 +1790,7 @@ const PRESETS = {
   follow: () => { const s = app.shipments.find(x => x.id === app.selected) || app.shipments.find(x => x.status !== 'done'); focusShipment(s); },
 };
 function setPreset(name){
-  for (const b of document.querySelectorAll('#topbar .seg:first-of-type button')) b.classList.remove('on');
+  for (const b of document.querySelectorAll('#topbar .seg button')) b.classList.remove('on');
   const btn = document.getElementById('preset-' + name);
   if (btn) btn.classList.add('on');
   PRESETS[name]();
@@ -1837,7 +1838,7 @@ function updateHover(){
   raycaster.setFromCamera(pointer, camera);
   const markers = app.shipments.filter(s => s.objects.markerGlow.visible).map(s => s.objects.markerGlow);
   const hits = raycaster.intersectObjects(markers, false);
-  (document.body.style).cursor = '';
+  renderer.domElement.style.cursor = '';
   if (hits.length){
     const s = app.shipments.find(x => x.objects.markerGlow === hits[0].object);
     hovered = s;
