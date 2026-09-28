@@ -60,11 +60,17 @@
     margin-left:auto; font-family:var(--mono); font-size:10.5px; letter-spacing:.06em;
     color:var(--dim); border:1px solid var(--stroke-soft); border-radius:999px; padding:2px 7px;
   }
+  .keyrow{display:flex; flex-wrap:wrap; gap:10px; padding:7px 12px; border-bottom:1px solid var(--stroke-soft); flex:0 0 auto}
+  .keyrow .key{display:flex; align-items:center; gap:5px; font-family:var(--mono); font-size:10.5px; color:#a7bad6}
+  .keyrow .g{width:9px; height:9px; border-radius:2px; display:inline-block}
+  .keyrow .g.t{background:#4fd1ff} .keyrow .g.d{background:#ffc45c}
+  .keyrow .g.r{background:#ff5f74} .keyrow .g.k{background:#49e39b}
   .panel-body{padding:11px 12px 12px; overflow:auto; min-height:0; flex:1 1 auto}
   /* the two bars are rows, not stacked columns like the side panels */
-  #topbar,#bottombar{flex-direction:row; flex-wrap:wrap; align-items:center; flex:0 0 auto}
-  #topbar{row-gap:8px; padding:10px 14px}
-  #bottombar{row-gap:6px; padding:8px 14px}
+  #topbar,#bottombar{flex-direction:row; align-items:center; flex:0 0 auto}
+  /* the top bar is a SINGLE row: chrome is shed per density tier, never wrapped */
+  #topbar{flex-wrap:nowrap; overflow:hidden; column-gap:12px; height:52px; padding:0 12px}
+  #bottombar{flex-wrap:wrap; row-gap:4px; column-gap:12px; padding:7px 12px}
   .panel-body.tight{padding:8px}
   .panel-body::-webkit-scrollbar{width:7px;height:7px}
   .panel-body::-webkit-scrollbar-thumb{background:rgba(120,175,255,.24); border-radius:4px}
@@ -272,8 +278,34 @@
     box-shadow:0 0 44px rgba(79,180,255,.45), inset -10px -8px 22px rgba(0,0,0,.6);
   }
 
+  @media (max-width:1560px){
+    #brand .mark{display:none}
+    #topbar .seg .lbl, #sun-wrap .lbl{display:none}
+    button{padding:7px 10px}
+    input[type=range]{width:128px}
+  }
+  @media (max-width:1460px){
+    #brand h1 span{display:none}
+    input[type=range]{width:110px}
+  }
+  @media (max-width:1360px){
+    #brand h1{font-size:13.5px}
+    button{padding:7px 9px; font-size:10px}
+    input[type=range]{width:92px}
+    #clock{font-size:12px} #clock small{font-size:9px}
+    #topbar .pill{padding:3px 7px; font-size:9.5px}
+  }
   @media (max-width:1280px){
     #ui{grid-template-columns:308px minmax(0,1fr) 344px}
+    #topbar #clock small{display:none}
+    #brand h1{font-size:12.5px}
+  }
+  @media (max-width:1200px){
+    #topbar #link-status{display:none}
+    input[type=range]{width:84px}
+  }
+  @media (max-width:1120px){
+    #topbar #clock{display:none}
   }
   /* --- narrow: dashboard becomes a scrollable sheet so the globe keeps a
          clean drag/zoom area above it instead of being covered --- */
@@ -391,6 +423,12 @@
   <div id="col-right">
     <div class="panel" style="flex:1 1 auto">
       <div class="panel-head"><h2>Live Shipments</h2><span class="tag" id="ship-count">0 tracked</span></div>
+      <div class="keyrow">
+        <span class="key"><i class="g t"></i>▲ in transit</span>
+        <span class="key"><i class="g d"></i>◆ delayed</span>
+        <span class="key"><i class="g r"></i>■ at risk</span>
+        <span class="key"><i class="g k"></i>● delivered</span>
+      </div>
       <div class="panel-body tight" id="shipment-list"><div class="empty">Awaiting telemetry…</div></div>
     </div>
 
@@ -411,11 +449,7 @@
 
   <!-- ---------- bottom ---------- -->
   <div class="panel" id="bottombar">
-    <div class="lg"><span class="sw" style="background:#4fd1ff"></span>In transit</div>
-    <div class="lg"><span class="sw" style="background:#ffc45c"></span>Delayed</div>
-    <div class="lg"><span class="sw" style="background:#ff5f74"></span>At risk</div>
-    <div class="lg"><span class="sw" style="background:#49e39b"></span>Delivered</div>
-    <div class="lg" style="color:var(--dim)">| <span id="foot-stats">—</span></div>
+    <div class="lg"><span id="foot-stats">—</span></div>
     <div class="spacer"></div>
     <div id="hint">drag orbit · scroll zoom · click a shipment to track · hover a marker for detail</div>
   </div>
@@ -515,6 +549,8 @@ const INCIDENTS = [
   { id:'ice', label:'Heavy swell / icing advisory',  risk: 15, slow: 0.70, hours: 20, sev:'mid'  },
 ];
 const PALETTE = { transit:0x4fd1ff, delayed:0xffc45c, risk:0xff5f74, done:0x49e39b };
+// status is encoded by SHAPE as well as colour so it survives deuteranopia
+const STATUS_GLYPH = { transit:'\u25B2', delayed:'\u25C6', risk:'\u25A0', done:'\u25CF' };
 
 /* ------------------------------------------------------------------ */
 /* math helpers                                                        */
@@ -922,9 +958,9 @@ scene.add(sunLight);
 
 const sunGlow = new THREE.Sprite(new THREE.SpriteMaterial({
   map: glowTex, color: 0xffe6b0, blending: THREE.AdditiveBlending, transparent: true,
-  depthWrite: false, opacity: 0.85,
+  depthWrite: false, opacity: 0.5,
 }));
-sunGlow.scale.setScalar(430);
+sunGlow.scale.setScalar(280);
 const sunCore = new THREE.Sprite(new THREE.SpriteMaterial({
   map: softDotTex, color: 0xfffdf3, blending: THREE.AdditiveBlending, transparent: true,
   depthWrite: false, opacity: 1,
@@ -1034,7 +1070,7 @@ function loadTex(file, colorSpace = THREE.SRGBColorSpace, aniso = 8){
 const earthMaterial = new THREE.ShaderMaterial({
   uniforms: {
     uDay: { value: null }, uNight: { value: null }, uSpec: { value: null }, uNormal: { value: null },
-    uSunDir: { value: sunDir.clone() }, uNormalScale: { value: 0.55 }, uNightBoost: { value: 1.0 },
+    uSunDir: { value: sunDir.clone() }, uNormalScale: { value: 0.55 }, uNightBoost: { value: 0.72 },
   },
   vertexShader: `
     varying vec2 vUv; varying vec3 vNormalW; varying vec3 vTangentW; varying vec3 vBitangentW; varying vec3 vWorld;
@@ -1076,14 +1112,14 @@ const earthMaterial = new THREE.ShaderMaterial({
       vec3 dayColor = day * (0.045 + 0.955 * lambert);
       // oceans: Blinn-Phong sun glint (geometric normal keeps it noise free)
       vec3 H = normalize(L + V);
-      float glint = pow(max(dot(Ng, H), 0.0), 190.0) * oceanMask * 0.55;
+      float glint = pow(max(dot(Ng, H), 0.0), 380.0) * oceanMask * 0.28;
       // warm scattering band along the terminator
-      vec3 sunset = vec3(1.0, 0.46, 0.19) * pow(twilight, 7.0) * smoothstep(-0.34, 0.06, geoDot) * 0.30;
+      vec3 sunset = vec3(1.0, 0.52, 0.26) * pow(twilight, 9.0) * smoothstep(-0.30, 0.08, geoDot) * 0.16;
 
       float lum = max(max(nightTex.r, nightTex.g), nightTex.b);
-      vec3 cityLights = vec3(1.0, 0.83, 0.55) * pow(lum, 1.25) * 2.55 * (1.0 - dayMix) * uNightBoost;
+      vec3 cityLights = vec3(1.0, 0.84, 0.58) * pow(lum, 1.65) * 1.45 * (1.0 - dayMix) * uNightBoost;
 
-      vec3 color = dayColor * mix(0.115, 1.0, dayMix) + cityLights + vec3(glint) + sunset;
+      vec3 color = dayColor * mix(0.20, 1.0, dayMix) + cityLights + vec3(glint) + sunset;
       gl_FragColor = vec4(color, 1.0);
       #include <tonemapping_fragment>
     }`,
@@ -1096,14 +1132,14 @@ spinGroup.add(earthMesh);
 /* --- clouds (slightly larger sphere, self-lit by the sun) ---------- */
 const cloudMaterial = new THREE.MeshStandardMaterial({
   color: 0xffffff, transparent: true, roughness: 1, metalness: 0,
-  depthWrite: false, opacity: 0.86, alphaTest: 0.02,
+  depthWrite: false, opacity: 0.58, alphaTest: 0.02,
 });
 const clouds = new THREE.Mesh(new THREE.SphereGeometry(EARTH_R * 1.012, 64, 48), cloudMaterial);
 spinGroup.add(clouds);
 
 /* --- atmosphere: back-side rim shell + additive outer halo --------- */
 const atmoShellMaterial = new THREE.ShaderMaterial({
-  uniforms: { uColor: { value: new THREE.Color(0x4aa4ff) }, uSunDir: { value: sunDir.clone() }, uPower: { value: 3.2 } },
+  uniforms: { uColor: { value: new THREE.Color(0x3f92e0) }, uSunDir: { value: sunDir.clone() }, uPower: { value: 4.4 } },
   vertexShader: `
     varying vec3 vNormalW; varying vec3 vView;
     void main(){
@@ -1119,7 +1155,7 @@ const atmoShellMaterial = new THREE.ShaderMaterial({
       float rim = pow(1.0 - abs(dot(normalize(vNormalW), normalize(vView))), uPower);
       float sunFacing = smoothstep(-0.32, 0.34, dot(normalize(vNormalW), normalize(uSunDir)));
       float a = rim * (0.12 + 0.88 * sunFacing);
-      gl_FragColor = vec4(uColor * a * 1.55, a);
+      gl_FragColor = vec4(uColor * a * 1.05, a);
       #include <tonemapping_fragment>
     }`,
   transparent: true, blending: THREE.AdditiveBlending, side: THREE.BackSide, depthWrite: false,
@@ -1131,7 +1167,7 @@ spinGroup.add(atmoShell);
 
 // billboard halo sits in scene space (Earth centre is the origin, so it stays centred while the globe spins)
 const haloMaterial = new THREE.ShaderMaterial({
-  uniforms: { uColor: { value: new THREE.Color(0x3f8fe0) }, uSunDir: { value: sunDir.clone() }, uEarthR: { value: EARTH_R }, uSize: { value: EARTH_R * 3.6 } },
+  uniforms: { uColor: { value: new THREE.Color(0x2a6cb8) }, uSunDir: { value: sunDir.clone() }, uEarthR: { value: EARTH_R }, uSize: { value: EARTH_R * 2.3 } },
   vertexShader: `
     varying vec2 vUv; varying vec3 vWorld;
     void main(){ vUv = uv; vec4 wp = modelMatrix * vec4(position, 1.0); vWorld = wp.xyz;
@@ -1144,8 +1180,8 @@ const haloMaterial = new THREE.ShaderMaterial({
       float d = length(p) / uEarthR;            // 0 at centre, 1 at horizon
       // gate the glow to the region outside the silhouette so it never washes the globe
       float gate = smoothstep(0.97, 1.06, d);
-      float limb = exp(-pow((d - 1.0) / 0.13, 2.0));
-      float a = clamp(limb * gate * 0.9, 0.0, 1.0);
+      float limb = exp(-pow((d - 1.0) / 0.105, 2.0));
+      float a = clamp(limb * gate * 0.62, 0.0, 1.0);
       float sunFacing = smoothstep(-0.45, 0.5, dot(normalize(vWorld), normalize(uSunDir)));
       vec3 c = uColor * (0.5 + 0.8 * sunFacing);
       gl_FragColor = vec4(c * a * 1.5, a * 0.95);
@@ -1155,7 +1191,7 @@ const haloMaterial = new THREE.ShaderMaterial({
 });
 app.materials.halo = haloMaterial;
 const halo = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), haloMaterial);
-halo.scale.setScalar(EARTH_R * 3.6);
+halo.scale.setScalar(EARTH_R * 2.3);
 halo.renderOrder = 3;
 scene.add(halo);
 
@@ -1235,7 +1271,7 @@ function buildShipment(fromPort, toPort, cargoId, priorityId, opts = {}){
   const total = cum[cum.length - 1] || 1;
 
   const planned = new THREE.Line(geo, new THREE.LineDashedMaterial({
-    color: PALETTE.transit, dashSize: 0.34, gapSize: 0.26, transparent: true, opacity: 0.34,
+    color: PALETTE.transit, dashSize: 0.55, gapSize: 0.30, transparent: true, opacity: 0.5,
   }));
   planned.computeLineDistances();
   laneGroup.add(planned);
@@ -1247,23 +1283,24 @@ function buildShipment(fromPort, toPort, cargoId, priorityId, opts = {}){
   trailGeo.setDrawRange(0, 1);
   laneGroup.add(trail);
 
-  const marker = new THREE.Mesh(new THREE.ConeGeometry(0.30, 1.05, 12),
+  const marker = new THREE.Mesh(new THREE.ConeGeometry(0.42, 1.35, 16),
     new THREE.MeshBasicMaterial({ color: PALETTE.transit }));
+  marker.userData.geoKey = 'transit';
   laneGroup.add(marker);
   const markerGlow = new THREE.Sprite(new THREE.SpriteMaterial({
     map: glowTex, color: PALETTE.transit, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, opacity: 0.9,
   }));
-  markerGlow.scale.setScalar(2.6);
+  markerGlow.scale.setScalar(3.4);
   laneGroup.add(markerGlow);
 
   const originDot = new THREE.Sprite(new THREE.SpriteMaterial({
     map: softDotTex, color: 0x9fd8ff, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, opacity: 0.8,
   }));
-  originDot.scale.setScalar(1.5); originDot.position.copy(a);
+  originDot.scale.setScalar(2.1); originDot.position.copy(a);
   const destDot = new THREE.Sprite(new THREE.SpriteMaterial({
     map: softDotTex, color: 0xffd9a0, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, opacity: 0.8,
   }));
-  destDot.scale.setScalar(1.5); destDot.position.copy(b);
+  destDot.scale.setScalar(2.1); destDot.position.copy(b);
   laneGroup.add(originDot, destDot);
 
   const s = {
@@ -1282,6 +1319,21 @@ function buildShipment(fromPort, toPort, cargoId, priorityId, opts = {}){
   return s;
 }
 
+const MARKER_GEO = {
+  transit: () => new THREE.ConeGeometry(0.42, 1.35, 16),
+  delayed: () => new THREE.OctahedronGeometry(0.62, 0),
+  risk:    () => new THREE.BoxGeometry(0.72, 0.72, 0.72),
+  done:    () => new THREE.SphereGeometry(0.5, 16, 12),
+};
+// swap the vessel silhouette so status never depends on colour alone
+function setMarkerShape(s, status){
+  const key = MARKER_GEO[status] ? status : 'transit';
+  if (s.objects.marker.userData.geoKey === key) return;
+  const old = s.objects.marker.geometry;
+  s.objects.marker.geometry = MARKER_GEO[key]();
+  old.dispose();
+  s.objects.marker.userData.geoKey = key;
+}
 function setShipmentColor(s, colorHex){
   s.objects.trail.material.color.setHex(colorHex);
   s.objects.markerGlow.material.color.setHex(colorHex);
@@ -1467,10 +1519,11 @@ function updateShipmentObjects(s){
   s.objects.marker.visible = true;
   s.objects.markerGlow.visible = true;
 
-  const hex = PALETTE[s.status === 'done' ? 'done' : s.status] || PALETTE.transit;
-  setShipmentColor(s, hex);
-  s.objects.trail.material.opacity = s.status === 'done' ? 0.55 : 0.95;
-  s.objects.planned.material.opacity = s.status === 'done' ? 0.18 : 0.32;
+  const statusKey = PALETTE[s.status] ? s.status : 'transit';
+  setShipmentColor(s, PALETTE[statusKey]);
+  setMarkerShape(s, statusKey);
+  s.objects.trail.material.opacity = s.status === 'done' ? 0.62 : 1.0;
+  s.objects.planned.material.opacity = s.status === 'done' ? 0.2 : 0.5;
 }
 
 /* ------------------------------------------------------------------ */
@@ -1519,8 +1572,9 @@ function updateShipmentRow(s){
     + (app.selected === s.id ? ' sel' : '');
   r.id.textContent = s.id;
   r.cargo.textContent = s.cargo.label;
-  r.st.textContent = s.status === 'done' ? 'delivered' : s.status === 'risk' ? 'at risk'
-    : s.status === 'delayed' ? 'delayed' : 'in transit';
+  const stKey = PALETTE[s.status] ? s.status : 'transit';
+  r.st.textContent = STATUS_GLYPH[stKey] + ' ' + (s.status === 'done' ? 'delivered' : s.status === 'risk' ? 'at risk'
+    : s.status === 'delayed' ? 'delayed' : 'in transit');
   r.st.className = 'st ' + (s.status === 'done' ? 'done' : s.status === 'risk' ? 'risk'
     : s.status === 'delayed' ? 'delayed' : 'transit');
   r.a.textContent = s.from.name; r.b.textContent = s.to.name;
@@ -2002,7 +2056,7 @@ function animate(){
       renderStats(); renderSpark();
       const d = new Date(SEED_DATE.getTime() + app.sim.hours * 3600e3);
       document.getElementById('clock').firstChild.nodeValue = d.toISOString().slice(11, 19);
-      document.getElementById('clock-sub').textContent = 'UTC · ' + sessionDateLabel(app.sim.hours) + ' · sim ' + app.sim.speed + '×';
+      document.getElementById('clock-sub').textContent = 'UTC · ' + sessionDateLabel(app.sim.hours);
       document.getElementById('link-status').textContent = app.alerts.length ? app.alerts.length + ' ALERTS' : 'TELEMETRY LINK';
     }
 

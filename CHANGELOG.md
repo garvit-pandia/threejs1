@@ -52,3 +52,57 @@ of terrain.
 - Performance: ~5 FPS in this environment — diagnosed as fill-rate bound
   (11 → 8 → 5 FPS scaling purely with pixel count under llvmpipe), not a
   logic defect.
+
+## Round 2 — scene, legibility and chrome
+
+Second round, driven by the critic's remaining findings plus a wrap defect found
+while reviewing the running app at 1440x900.
+
+### Fixed
+
+- **Top bar wrapped to a second row between 1280 and 1500 px.** Round 1's
+  hit-target padding pushed the control row past the available width, so
+  `#topbar` measured 95px at 1440 (two rows) while being 54px at 1680. The bar
+  is now `flex-wrap: nowrap` with a definite 52px height and sheds
+  non-essential chrome per density tier (mark badge, section labels, brand
+  tagline, sun label, clock sub-line, status pill, clock, slider) at 1560 /
+  1460 / 1360 / 1280 / 1200 / 1120 px. Measured: **52px, one row, zero clipped
+  children and no horizontal overflow at every width from 1024 to 1680**.
+- **Earth surface rebalanced** (critic F5). City lights `pow(lum,1.25)*2.55` →
+  `pow(lum,1.65)*1.45` and `uNightBoost` 1.0 → 0.72 (the orange harbour smear is
+  gone); terminator band `pow(twilight,7)*0.30` → `pow(twilight,9)*0.16` (rust
+  ring gone); ocean glint exponent 190 → 380 and gain 0.55 → 0.28 (white blob
+  gone); night floor `0.115` → `0.20` so the dark side stays readable rather
+  than black; cloud opacity 0.86 → 0.58 so clouds stop washing out the lights.
+- **Atmosphere and halo de-glared** (critic F6). Halo `3.6R` → `2.3R` with a
+  tighter `exp` falloff and alpha 0.9 → 0.62, colour `0x3f8fe0` → `0x2a6cb8`;
+  atmosphere rim power 3.2 → 4.4 and gain 1.55 → 1.05; sun glow sprite 430 →
+  280 with opacity 0.85 → 0.50.
+- **Freight is visible at distance** (critic F7). Planned dashes enlarged
+  (`dashSize` 0.34 → 0.55, opacity 0.34 → 0.50, active legs 0.32 → 0.50);
+  vessel cone 0.30×1.05 → 0.42×1.35; marker glow 2.6 → 3.4; port dots 1.5 → 2.1.
+- **Status no longer depends on colour alone.** The vessel mesh is now swapped
+  per status — cone (in transit), octahedron (delayed), cube (at risk), sphere
+  (delivered) — matching new ▲ ◆ ■ ● glyphs in the shipment rows, so the
+  encoding survives deuteranopia.
+- **Legend moved next to what it decodes** (critic F8). An inline key row now
+  sits directly above the Live Shipments list; the duplicate detached legend was
+  removed from the bottom bar, which keeps only the run totals and the hint.
+- **Contradictory simulation readout removed.** The clock sub-line no longer
+  prints a speed that could disagree with the speed button; speed is shown once,
+  on the button. The pause button label now also tracks programmatic pauses.
+
+### Verified (dev server, 5180)
+
+`window.__app.errors` empty; 12 shipments and 2 alerts live; exactly one light
+(`["DirectionalLight"]`); top bar 52px single-row at 1024/1100/1200/1280/1366/
+1440/1500/1680 with no clipping and no horizontal overflow; corridor validator
+still reports `111 edges · 0 crossing > 90 km of land`.
+
+### Still open (Round 3)
+
+- Accessibility: no `:focus-visible` rings, no ARIA labelling, no
+  reduced-motion mode, touch gestures untuned.
+- Information design: `Avg ETA` still reads oddly with few legs to average;
+  some units lack explicit windows.
+- Performance under software rasterisation (llvmpipe) remains fill-rate bound.
