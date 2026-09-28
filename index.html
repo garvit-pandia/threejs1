@@ -53,14 +53,18 @@
     border-bottom:1px solid var(--stroke-soft); flex:0 0 auto;
   }
   .panel-head h2{
-    margin:0; font-size:10.5px; font-weight:650; letter-spacing:.14em;
+    margin:0; font-size:11.5px; font-weight:650; letter-spacing:.14em;
     text-transform:uppercase; color:#b9cdea;
   }
   .panel-head .tag{
-    margin-left:auto; font-family:var(--mono); font-size:9.5px; letter-spacing:.06em;
+    margin-left:auto; font-family:var(--mono); font-size:10.5px; letter-spacing:.06em;
     color:var(--dim); border:1px solid var(--stroke-soft); border-radius:999px; padding:2px 7px;
   }
   .panel-body{padding:11px 12px 12px; overflow:auto; min-height:0; flex:1 1 auto}
+  /* the two bars are rows, not stacked columns like the side panels */
+  #topbar,#bottombar{flex-direction:row; flex-wrap:wrap; align-items:center; flex:0 0 auto}
+  #topbar{row-gap:8px; padding:10px 14px}
+  #bottombar{row-gap:6px; padding:8px 14px}
   .panel-body.tight{padding:8px}
   .panel-body::-webkit-scrollbar{width:7px;height:7px}
   .panel-body::-webkit-scrollbar-thumb{background:rgba(120,175,255,.24); border-radius:4px}
@@ -81,21 +85,21 @@
   button{
     font-family:var(--ui); font-size:10.5px; letter-spacing:.07em; text-transform:uppercase;
     color:#c6d9f5; background:rgba(24,38,64,.6); border:1px solid var(--stroke);
-    border-radius:8px; padding:6px 10px; cursor:pointer; transition:.16s ease;
+    border-radius:8px; padding:8px 12px; min-height:34px; cursor:pointer; transition:.16s ease;
   }
   button:hover{background:rgba(46,76,122,.66); color:#eaf3ff; border-color:rgba(122,178,255,.4)}
   button.on{background:rgba(79,209,255,.18); border-color:rgba(79,209,255,.55); color:#e8f8ff}
   button:active{transform:translateY(1px)}
   #topbar .spacer{flex:1 1 auto}
-  #clock{font-family:var(--mono); font-size:12px; color:#e6f1ff; letter-spacing:.06em}
-  #clock small{display:block; font-size:9px; letter-spacing:.16em; color:var(--dim)}
+  #clock{font-family:var(--mono); font-size:13px; color:#e6f1ff; letter-spacing:.06em}
+  #clock small{display:block; font-size:10px; letter-spacing:.16em; color:var(--dim)}
   #sun-wrap{display:flex; align-items:center; gap:9px}
   input[type=range]{
-    -webkit-appearance:none; appearance:none; width:140px; height:3px; border-radius:3px;
+    -webkit-appearance:none; appearance:none; width:170px; height:22px; border-radius:11px;
     background:linear-gradient(90deg, #1b2a48, #4fd1ff); outline:none;
   }
   input[type=range]::-webkit-slider-thumb{
-    -webkit-appearance:none; width:13px; height:13px; border-radius:50%;
+    -webkit-appearance:none; width:19px; height:19px; border-radius:50%;
     background:#eaf6ff; border:2px solid #4fd1ff; box-shadow:0 0 10px rgba(79,209,255,.8); cursor:pointer;
   }
   .pill{
@@ -118,10 +122,10 @@
     background:rgba(11,20,36,.5); border:1px solid var(--stroke-soft); border-radius:10px;
     padding:8px 9px; position:relative; overflow:hidden;
   }
-  .kpi .k{font-size:9px; letter-spacing:.12em; text-transform:uppercase; color:var(--dim); font-family:var(--mono)}
+  .kpi .k{font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--dim); font-family:var(--mono)}
   .kpi .v{font-family:var(--mono); font-size:19px; color:#eef6ff; margin-top:3px; line-height:1.1}
   .kpi .v.big{font-size:21px}
-  .kpi .sub{font-family:var(--mono); font-size:9.5px; color:var(--muted); margin-top:2px}
+  .kpi .sub{font-family:var(--mono); font-size:11px; color:#a7bad6; margin-top:2px}
   .kpi.good .v{color:var(--green)} .kpi.warn .v{color:var(--amber)} .kpi.bad .v{color:var(--red)}
   .kpi.good:after,.kpi.warn:after,.kpi.bad:after{
     content:''; position:absolute; left:0; top:0; bottom:0; width:2px;
@@ -129,7 +133,7 @@
   }
   .kpi.good:after{background:var(--green)} .kpi.warn:after{background:var(--amber)} .kpi.bad:after{background:var(--red)}
   .meter{margin-top:11px}
-  .meter .row{display:flex; justify-content:space-between; font-family:var(--mono); font-size:9.5px; color:var(--muted); margin-bottom:5px}
+  .meter .row{display:flex; justify-content:space-between; font-family:var(--mono); font-size:11px; color:#a7bad6; margin-bottom:5px}
   .bar{height:5px; border-radius:4px; background:rgba(255,255,255,.07); overflow:hidden}
   .bar > i{display:block; height:100%; width:0%; border-radius:4px; background:linear-gradient(90deg,#2b6fb8,#4fd1ff); transition:width .4s ease}
   .bar.warn > i{background:linear-gradient(90deg,#8a6320,#ffc45c)}
@@ -152,19 +156,19 @@
   .ship:hover{background:rgba(28,48,80,.6); border-color:rgba(122,178,255,.34)}
   .ship.sel{border-color:rgba(79,209,255,.7); box-shadow:0 0 0 1px rgba(79,209,255,.25) inset, 0 0 18px rgba(79,209,255,.12)}
   .ship .top{display:flex; align-items:center; gap:7px}
-  .ship .id{font-family:var(--mono); font-size:10.5px; color:#e7f2ff; letter-spacing:.04em}
-  .ship .cargo{font-size:9.5px; color:var(--dim); font-family:var(--mono)}
+  .ship .id{font-family:var(--mono); font-size:12px; color:#e7f2ff; letter-spacing:.04em}
+  .ship .cargo{font-size:11px; color:#a7bad6; font-family:var(--mono)}
   .ship .st{
-    margin-left:auto; font-family:var(--mono); font-size:8.5px; letter-spacing:.08em; text-transform:uppercase;
+    margin-left:auto; font-family:var(--mono); font-size:10px; letter-spacing:.06em; text-transform:uppercase;
     padding:2px 6px; border-radius:999px; border:1px solid transparent; white-space:nowrap;
   }
   .st.transit{color:#9fe4ff; background:rgba(79,209,255,.13); border-color:rgba(79,209,255,.35)}
   .st.delayed{color:#ffd79a; background:rgba(255,196,92,.13); border-color:rgba(255,196,92,.35)}
   .st.risk{color:#ffb2be; background:rgba(255,95,116,.14); border-color:rgba(255,95,116,.38)}
   .st.done{color:#9df3c9; background:rgba(73,227,155,.13); border-color:rgba(73,227,155,.34)}
-  .ship .route{display:flex; align-items:center; gap:6px; font-size:10.5px; color:#c3d6f0; margin-top:5px}
+  .ship .route{display:flex; align-items:center; gap:6px; font-size:12px; color:#c3d6f0; margin-top:5px}
   .ship .route .arw{color:var(--dim); font-size:9px}
-  .ship .meta{display:flex; gap:10px; font-family:var(--mono); font-size:9px; color:var(--dim); margin-top:5px}
+  .ship .meta{display:flex; gap:10px; font-family:var(--mono); font-size:10.5px; color:#93a8c8; margin-top:5px}
   .ship .meta b{color:#b9cdea; font-weight:500}
   .ship .pbar{height:3px; border-radius:3px; margin-top:6px; background:rgba(255,255,255,.07); overflow:hidden}
   .ship .pbar > i{display:block; height:100%; width:0%; border-radius:3px; background:linear-gradient(90deg,#2f7fc9,#4fd1ff)}
@@ -186,10 +190,10 @@
   .alert.low{border-left-color:var(--cyan)}
   .alert .ic{font-size:11px; line-height:1.35}
   .alert .txt{flex:1 1 auto; min-width:0}
-  .alert .t{font-size:10.5px; color:#dae7fa; line-height:1.3}
-  .alert .s{font-family:var(--mono); font-size:9px; color:var(--dim); margin-top:3px}
+  .alert .t{font-size:11.5px; color:#dae7fa; line-height:1.3}
+  .alert .s{font-family:var(--mono); font-size:10px; color:var(--dim); margin-top:3px}
   .alert .ack{
-    font-family:var(--mono); font-size:7.5px; letter-spacing:.1em; text-transform:uppercase;
+    font-family:var(--mono); font-size:9px; letter-spacing:.08em; text-transform:uppercase;
     border:1px solid var(--stroke-soft); border-radius:999px; padding:2px 6px; color:var(--muted);
     background:rgba(255,255,255,.04); cursor:pointer; flex:0 0 auto;
   }
@@ -199,27 +203,27 @@
   .form{display:grid; grid-template-columns:1fr 1fr; gap:8px}
   .field{display:flex; flex-direction:column; gap:4px; min-width:0}
   .field.wide{grid-column:1/3}
-  .field label{font-size:8.5px; letter-spacing:.13em; text-transform:uppercase; color:var(--dim); font-family:var(--mono)}
+  .field label{font-size:10px; letter-spacing:.11em; text-transform:uppercase; color:var(--dim); font-family:var(--mono)}
   select,input[type=text]{
-    width:100%; font-family:var(--ui); font-size:11px; color:#e3eefc;
-    background:rgba(9,17,31,.82); border:1px solid var(--stroke); border-radius:8px; padding:7px 8px;
+    width:100%; font-family:var(--ui); font-size:12px; color:#e3eefc;
+    background:rgba(9,17,31,.9); border:1px solid var(--stroke); border-radius:8px; padding:10px; min-height:36px;
     outline:none; appearance:none;
   }
   select{background-image:linear-gradient(45deg,transparent 50%,#7c93b6 50%),linear-gradient(135deg,#7c93b6 50%,transparent 50%);
     background-position:calc(100% - 13px) 51%,calc(100% - 8px) 51%; background-size:5px 5px,5px 5px; background-repeat:no-repeat}
   select:focus,input:focus{border-color:rgba(79,209,255,.6)}
-  #planner-dispatch{grid-column:1/3; padding:9px; font-size:11px;
+  #planner-dispatch{grid-column:1/3; padding:11px; font-size:12px; min-height:40px;
     background:linear-gradient(180deg, rgba(60,160,220,.34), rgba(30,96,150,.34));
     border-color:rgba(79,209,255,.5); color:#eaf8ff; font-weight:600}
   #planner-dispatch:hover{background:linear-gradient(180deg, rgba(80,190,250,.45), rgba(40,120,180,.45))}
-  .hintline{font-family:var(--mono); font-size:9px; color:var(--dim); margin-top:9px; line-height:1.5}
+  .hintline{font-family:var(--mono); font-size:11px; color:#a7bad6; margin-top:9px; line-height:1.5}
 
   /* ---------- bottom bar / toasts / tooltip ---------- */
   #bottombar{grid-column:1/4; display:flex; align-items:center; gap:14px; padding:7px 14px}
-  #bottombar .lg{display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:9.5px; color:var(--muted)}
+  #bottombar .lg{display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:10.5px; color:#a7bad6}
   #bottombar .sw{width:16px; height:3px; border-radius:2px}
   #bottombar .spacer{flex:1 1 auto}
-  #hint{font-family:var(--mono); font-size:9.5px; color:var(--dim)}
+  #hint{font-family:var(--mono); font-size:10.5px; color:#93a8c8}
   #toasts{position:fixed; top:70px; left:50%; transform:translateX(-50%); z-index:5; display:flex;
     flex-direction:column; gap:7px; align-items:center; pointer-events:none; width:min(460px,86vw)}
   .toast{
@@ -244,8 +248,8 @@
   #tooltip .k{color:var(--dim)}
   #labels{position:fixed; inset:0; z-index:1; pointer-events:none; overflow:hidden}
   .plabel{
-    position:absolute; transform:translate(-50%,-50%); font-family:var(--mono); font-size:9.5px;
-    letter-spacing:.16em; text-transform:uppercase; color:#cfe0f8; text-shadow:0 0 10px rgba(0,0,0,.9), 0 0 22px rgba(60,140,255,.5);
+    position:absolute; transform:translate(-50%,-50%); font-family:var(--mono); font-size:11px;
+    letter-spacing:.1em; text-transform:uppercase; color:#fff; text-shadow:0 1px 5px #000, 0 0 14px rgba(0,0,0,.95);
     white-space:nowrap; opacity:0; transition:opacity .3s ease;
   }
   .plabel:after{
@@ -268,16 +272,37 @@
     box-shadow:0 0 44px rgba(79,180,255,.45), inset -10px -8px 22px rgba(0,0,0,.6);
   }
 
-  @media (max-width:1240px){
-    #ui{grid-template-columns:304px minmax(0,1fr) 348px}
+  @media (max-width:1280px){
+    #ui{grid-template-columns:308px minmax(0,1fr) 344px}
   }
+  /* --- narrow: dashboard becomes a scrollable sheet so the globe keeps a
+         clean drag/zoom area above it instead of being covered --- */
   @media (max-width:1000px){
-    #ui{grid-template-columns:1fr; grid-template-rows:auto auto auto auto; overflow:auto; pointer-events:auto}
-    #topbar,#bottombar{grid-column:1/2}
-    #col-left{grid-column:1/2; grid-row:2/3} #col-right{grid-column:1/2; grid-row:3/4}
-    #bottombar{grid-row:4/5}
-    .panel{max-height:none}
+    #ui{
+      display:flex; flex-direction:column; gap:8px; padding:8px;
+      top:auto; bottom:0; height:62%; overflow-y:auto; pointer-events:auto;
+      -webkit-overflow-scrolling:touch;
+    }
+    #topbar{position:fixed; top:8px; left:8px; right:8px; z-index:4; max-height:56px; overflow:hidden}
+    #topbar #brand h1 span, #topbar .pill, #sun-wrap{display:none}
+    #col-left,#col-right{display:contents}
+    #ui{padding-bottom:52px}
+    #col-left .panel,#col-right .panel{flex:0 0 auto; max-height:none}
+    /* panels in the sheet size to their content instead of collapsing */
+    #ui .panel-body{flex:0 0 auto; overflow:visible; min-height:0; max-height:none}
+    #ui #shipment-list,#ui #alert-list{max-height:none}
+    #bottombar{position:fixed; left:8px; right:8px; bottom:8px; z-index:3; overflow-x:auto; flex-wrap:nowrap}
+    #bottombar #hint{display:none}
     #labels{display:none}
+    .kpis{grid-template-columns:1fr 1fr}
+    .form{grid-template-columns:1fr 1fr}
+  }
+  @media (max-width:600px){
+    #topbar .seg:first-of-type button{padding:8px 9px}
+    #brand h1{font-size:13px}
+    .panel-head h2{font-size:11px}
+    #ui{height:70%}
+    #bottombar .lg{font-size:10px}
   }
 </style>
 </head>
