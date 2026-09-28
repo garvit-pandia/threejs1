@@ -1,0 +1,2047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<title>TERRA FREIGHT — Global Logistics Command</title>
+<style>
+  :root{
+    --bg:#04070f;
+    --glass:linear-gradient(158deg, rgba(22,34,58,.58) 0%, rgba(9,15,28,.46) 100%);
+    --stroke:rgba(122,178,255,.20);
+    --stroke-soft:rgba(122,178,255,.11);
+    --text:#dce8fb;
+    --muted:#8ea3c4;
+    --dim:#63779a;
+    --cyan:#4fd1ff;
+    --green:#49e39b;
+    --amber:#ffc45c;
+    --red:#ff5f74;
+    --violet:#b28cff;
+    --mono:ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --ui:system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--text); font-family:var(--ui);
+    overflow:hidden; -webkit-font-smoothing:antialiased;
+  }
+  canvas#scene{position:fixed; inset:0; display:block; width:100%; height:100%}
+  #vignette{
+    position:fixed; inset:0; pointer-events:none; z-index:1;
+    background:
+      radial-gradient(130% 100% at 50% 42%, rgba(0,0,0,0) 38%, rgba(2,5,13,.62) 100%),
+      repeating-linear-gradient(0deg, rgba(255,255,255,.012) 0 1px, rgba(0,0,0,0) 1px 3px);
+  }
+  #ui{
+    position:fixed; inset:0; z-index:2; padding:12px;
+    display:grid; grid-template-columns:342px minmax(0,1fr) 396px;
+    grid-template-rows:auto minmax(0,1fr) auto; gap:12px; pointer-events:none;
+  }
+  .panel{
+    background:var(--glass);
+    -webkit-backdrop-filter:blur(16px) saturate(150%);
+    backdrop-filter:blur(16px) saturate(150%);
+    border:1px solid var(--stroke); border-radius:14px;
+    box-shadow:0 18px 48px rgba(0,0,0,.46), inset 0 1px 0 rgba(255,255,255,.055);
+    pointer-events:auto; min-height:0; display:flex; flex-direction:column;
+  }
+  .panel-head{
+    display:flex; align-items:center; gap:8px; padding:9px 12px 8px;
+    border-bottom:1px solid var(--stroke-soft); flex:0 0 auto;
+  }
+  .panel-head h2{
+    margin:0; font-size:10.5px; font-weight:650; letter-spacing:.14em;
+    text-transform:uppercase; color:#b9cdea;
+  }
+  .panel-head .tag{
+    margin-left:auto; font-family:var(--mono); font-size:9.5px; letter-spacing:.06em;
+    color:var(--dim); border:1px solid var(--stroke-soft); border-radius:999px; padding:2px 7px;
+  }
+  .panel-body{padding:11px 12px 12px; overflow:auto; min-height:0; flex:1 1 auto}
+  .panel-body.tight{padding:8px}
+  .panel-body::-webkit-scrollbar{width:7px;height:7px}
+  .panel-body::-webkit-scrollbar-thumb{background:rgba(120,175,255,.24); border-radius:4px}
+  .panel-body::-webkit-scrollbar-track{background:transparent}
+
+  /* ---------- top bar ---------- */
+  #topbar{grid-column:1/4; display:flex; align-items:center; gap:14px; padding:9px 14px; }
+  #brand{display:flex; align-items:baseline; gap:10px}
+  #brand .mark{
+    font-family:var(--mono); font-size:10px; letter-spacing:.16em; color:var(--cyan);
+    border:1px solid rgba(79,209,255,.35); border-radius:6px; padding:3px 6px;
+    background:rgba(79,209,255,.08);
+  }
+  #brand h1{margin:0; font-size:15px; font-weight:600; letter-spacing:.05em}
+  #brand h1 span{color:var(--dim); font-weight:400}
+  .seg{display:flex; gap:6px; align-items:center}
+  .seg .lbl{font-size:9.5px; letter-spacing:.13em; text-transform:uppercase; color:var(--dim); font-family:var(--mono)}
+  button{
+    font-family:var(--ui); font-size:10.5px; letter-spacing:.07em; text-transform:uppercase;
+    color:#c6d9f5; background:rgba(24,38,64,.6); border:1px solid var(--stroke);
+    border-radius:8px; padding:6px 10px; cursor:pointer; transition:.16s ease;
+  }
+  button:hover{background:rgba(46,76,122,.66); color:#eaf3ff; border-color:rgba(122,178,255,.4)}
+  button.on{background:rgba(79,209,255,.18); border-color:rgba(79,209,255,.55); color:#e8f8ff}
+  button:active{transform:translateY(1px)}
+  #topbar .spacer{flex:1 1 auto}
+  #clock{font-family:var(--mono); font-size:12px; color:#e6f1ff; letter-spacing:.06em}
+  #clock small{display:block; font-size:9px; letter-spacing:.16em; color:var(--dim)}
+  #sun-wrap{display:flex; align-items:center; gap:9px}
+  input[type=range]{
+    -webkit-appearance:none; appearance:none; width:140px; height:3px; border-radius:3px;
+    background:linear-gradient(90deg, #1b2a48, #4fd1ff); outline:none;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:13px; height:13px; border-radius:50%;
+    background:#eaf6ff; border:2px solid #4fd1ff; box-shadow:0 0 10px rgba(79,209,255,.8); cursor:pointer;
+  }
+  .pill{
+    display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:10px;
+    color:#b7d3f2; border:1px solid var(--stroke-soft); border-radius:999px; padding:4px 9px;
+  }
+  .dot{width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 8px var(--green)}
+  .dot.live{animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.32}}
+
+  /* ---------- columns ---------- */
+  #col-left,#col-right{display:flex; flex-direction:column; gap:12px; min-height:0; pointer-events:none}
+  #col-left{grid-column:1/2; grid-row:2/3}
+  #col-right{grid-column:3/4; grid-row:2/3}
+  #col-left .panel,#col-right .panel{pointer-events:auto}
+
+  /* ---------- stats ---------- */
+  .kpis{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+  .kpi{
+    background:rgba(11,20,36,.5); border:1px solid var(--stroke-soft); border-radius:10px;
+    padding:8px 9px; position:relative; overflow:hidden;
+  }
+  .kpi .k{font-size:9px; letter-spacing:.12em; text-transform:uppercase; color:var(--dim); font-family:var(--mono)}
+  .kpi .v{font-family:var(--mono); font-size:19px; color:#eef6ff; margin-top:3px; line-height:1.1}
+  .kpi .v.big{font-size:21px}
+  .kpi .sub{font-family:var(--mono); font-size:9.5px; color:var(--muted); margin-top:2px}
+  .kpi.good .v{color:var(--green)} .kpi.warn .v{color:var(--amber)} .kpi.bad .v{color:var(--red)}
+  .kpi.good:after,.kpi.warn:after,.kpi.bad:after{
+    content:''; position:absolute; left:0; top:0; bottom:0; width:2px;
+    background:currentColor; opacity:.85;
+  }
+  .kpi.good:after{background:var(--green)} .kpi.warn:after{background:var(--amber)} .kpi.bad:after{background:var(--red)}
+  .meter{margin-top:11px}
+  .meter .row{display:flex; justify-content:space-between; font-family:var(--mono); font-size:9.5px; color:var(--muted); margin-bottom:5px}
+  .bar{height:5px; border-radius:4px; background:rgba(255,255,255,.07); overflow:hidden}
+  .bar > i{display:block; height:100%; width:0%; border-radius:4px; background:linear-gradient(90deg,#2b6fb8,#4fd1ff); transition:width .4s ease}
+  .bar.warn > i{background:linear-gradient(90deg,#8a6320,#ffc45c)}
+  .bar.bad > i{background:linear-gradient(90deg,#8a2436,#ff5f74)}
+  .split{display:flex; gap:12px; align-items:center; margin-top:12px; padding-top:11px; border-top:1px solid var(--stroke-soft)}
+  #spark{flex:1 1 auto; min-width:0}
+  #spark svg{display:block; width:100%; height:44px; overflow:visible}
+  #gauge{flex:0 0 auto; position:relative; width:76px; height:76px}
+  #gauge svg{transform:rotate(-90deg)}
+  #gauge .gl{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center}
+  #gauge .gv{font-family:var(--mono); font-size:17px; color:#eaf4ff; line-height:1}
+  #gauge .gk{font-size:8px; letter-spacing:.13em; text-transform:uppercase; color:var(--dim); margin-top:2px}
+
+  /* ---------- lists ---------- */
+  .rows{display:flex; flex-direction:column; gap:6px}
+  .ship{
+    border:1px solid var(--stroke-soft); border-radius:10px; padding:7px 9px 8px;
+    background:rgba(11,20,36,.42); cursor:pointer; transition:.15s ease; position:relative;
+  }
+  .ship:hover{background:rgba(28,48,80,.6); border-color:rgba(122,178,255,.34)}
+  .ship.sel{border-color:rgba(79,209,255,.7); box-shadow:0 0 0 1px rgba(79,209,255,.25) inset, 0 0 18px rgba(79,209,255,.12)}
+  .ship .top{display:flex; align-items:center; gap:7px}
+  .ship .id{font-family:var(--mono); font-size:10.5px; color:#e7f2ff; letter-spacing:.04em}
+  .ship .cargo{font-size:9.5px; color:var(--dim); font-family:var(--mono)}
+  .ship .st{
+    margin-left:auto; font-family:var(--mono); font-size:8.5px; letter-spacing:.08em; text-transform:uppercase;
+    padding:2px 6px; border-radius:999px; border:1px solid transparent; white-space:nowrap;
+  }
+  .st.transit{color:#9fe4ff; background:rgba(79,209,255,.13); border-color:rgba(79,209,255,.35)}
+  .st.delayed{color:#ffd79a; background:rgba(255,196,92,.13); border-color:rgba(255,196,92,.35)}
+  .st.risk{color:#ffb2be; background:rgba(255,95,116,.14); border-color:rgba(255,95,116,.38)}
+  .st.done{color:#9df3c9; background:rgba(73,227,155,.13); border-color:rgba(73,227,155,.34)}
+  .ship .route{display:flex; align-items:center; gap:6px; font-size:10.5px; color:#c3d6f0; margin-top:5px}
+  .ship .route .arw{color:var(--dim); font-size:9px}
+  .ship .meta{display:flex; gap:10px; font-family:var(--mono); font-size:9px; color:var(--dim); margin-top:5px}
+  .ship .meta b{color:#b9cdea; font-weight:500}
+  .ship .pbar{height:3px; border-radius:3px; margin-top:6px; background:rgba(255,255,255,.07); overflow:hidden}
+  .ship .pbar > i{display:block; height:100%; width:0%; border-radius:3px; background:linear-gradient(90deg,#2f7fc9,#4fd1ff)}
+  .ship.delayed .pbar > i{background:linear-gradient(90deg,#8a6320,#ffc45c)}
+  .ship.risk .pbar > i{background:linear-gradient(90deg,#8a2436,#ff5f74)}
+  .ship.done .pbar > i{background:linear-gradient(90deg,#1f7a52,#49e39b)}
+  .riskbar{position:absolute; right:0; top:0; bottom:0; width:3px; border-radius:0 9px 9px 0; background:transparent}
+  .empty{color:var(--dim); font-size:11px; text-align:center; padding:14px 6px; font-family:var(--mono)}
+
+  .alert{
+    border-left:2px solid var(--amber); border-radius:8px; padding:7px 9px;
+    background:rgba(11,20,36,.5); border-top:1px solid var(--stroke-soft);
+    border-right:1px solid var(--stroke-soft); border-bottom:1px solid var(--stroke-soft);
+    display:flex; gap:8px; align-items:flex-start; cursor:pointer;
+  }
+  .alert:hover{background:rgba(30,50,84,.6)}
+  .alert.crit{border-left-color:var(--red)}
+  .alert.mid{border-left-color:var(--amber)}
+  .alert.low{border-left-color:var(--cyan)}
+  .alert .ic{font-size:11px; line-height:1.35}
+  .alert .txt{flex:1 1 auto; min-width:0}
+  .alert .t{font-size:10.5px; color:#dae7fa; line-height:1.3}
+  .alert .s{font-family:var(--mono); font-size:9px; color:var(--dim); margin-top:3px}
+  .alert .ack{
+    font-family:var(--mono); font-size:7.5px; letter-spacing:.1em; text-transform:uppercase;
+    border:1px solid var(--stroke-soft); border-radius:999px; padding:2px 6px; color:var(--muted);
+    background:rgba(255,255,255,.04); cursor:pointer; flex:0 0 auto;
+  }
+  .alert .ack:hover{color:#fff; border-color:rgba(122,178,255,.5)}
+
+  /* ---------- planner ---------- */
+  .form{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+  .field{display:flex; flex-direction:column; gap:4px; min-width:0}
+  .field.wide{grid-column:1/3}
+  .field label{font-size:8.5px; letter-spacing:.13em; text-transform:uppercase; color:var(--dim); font-family:var(--mono)}
+  select,input[type=text]{
+    width:100%; font-family:var(--ui); font-size:11px; color:#e3eefc;
+    background:rgba(9,17,31,.82); border:1px solid var(--stroke); border-radius:8px; padding:7px 8px;
+    outline:none; appearance:none;
+  }
+  select{background-image:linear-gradient(45deg,transparent 50%,#7c93b6 50%),linear-gradient(135deg,#7c93b6 50%,transparent 50%);
+    background-position:calc(100% - 13px) 51%,calc(100% - 8px) 51%; background-size:5px 5px,5px 5px; background-repeat:no-repeat}
+  select:focus,input:focus{border-color:rgba(79,209,255,.6)}
+  #planner-dispatch{grid-column:1/3; padding:9px; font-size:11px;
+    background:linear-gradient(180deg, rgba(60,160,220,.34), rgba(30,96,150,.34));
+    border-color:rgba(79,209,255,.5); color:#eaf8ff; font-weight:600}
+  #planner-dispatch:hover{background:linear-gradient(180deg, rgba(80,190,250,.45), rgba(40,120,180,.45))}
+  .hintline{font-family:var(--mono); font-size:9px; color:var(--dim); margin-top:9px; line-height:1.5}
+
+  /* ---------- bottom bar / toasts / tooltip ---------- */
+  #bottombar{grid-column:1/4; display:flex; align-items:center; gap:14px; padding:7px 14px}
+  #bottombar .lg{display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:9.5px; color:var(--muted)}
+  #bottombar .sw{width:16px; height:3px; border-radius:2px}
+  #bottombar .spacer{flex:1 1 auto}
+  #hint{font-family:var(--mono); font-size:9.5px; color:var(--dim)}
+  #toasts{position:fixed; top:70px; left:50%; transform:translateX(-50%); z-index:5; display:flex;
+    flex-direction:column; gap:7px; align-items:center; pointer-events:none; width:min(460px,86vw)}
+  .toast{
+    background:linear-gradient(158deg, rgba(24,40,68,.9), rgba(10,17,32,.88));
+    -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
+    border:1px solid rgba(122,178,255,.3); border-left:2px solid var(--cyan); border-radius:10px;
+    padding:8px 13px; font-size:11px; color:#e6f1ff; box-shadow:0 14px 34px rgba(0,0,0,.5);
+    animation:tin .28s ease both; max-width:100%;
+  }
+  .toast.warn{border-left-color:var(--amber)} .toast.bad{border-left-color:var(--red)} .toast.good{border-left-color:var(--green)}
+  .toast small{display:block; font-family:var(--mono); font-size:9px; color:var(--muted); margin-top:3px}
+  .toast.out{animation:tout .3s ease both}
+  @keyframes tin{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+  @keyframes tout{to{opacity:0;transform:translateY(-6px)}}
+  #tooltip{
+    position:fixed; z-index:6; pointer-events:none; opacity:0; transition:opacity .12s ease;
+    background:rgba(8,14,26,.92); border:1px solid rgba(122,178,255,.35); border-radius:9px;
+    padding:7px 10px; font-family:var(--mono); font-size:10px; color:#dbe9ff; max-width:250px; line-height:1.5;
+    box-shadow:0 12px 30px rgba(0,0,0,.55);
+  }
+  #tooltip b{color:#fff; font-weight:600}
+  #tooltip .k{color:var(--dim)}
+  #labels{position:fixed; inset:0; z-index:1; pointer-events:none; overflow:hidden}
+  .plabel{
+    position:absolute; transform:translate(-50%,-50%); font-family:var(--mono); font-size:9.5px;
+    letter-spacing:.16em; text-transform:uppercase; color:#cfe0f8; text-shadow:0 0 10px rgba(0,0,0,.9), 0 0 22px rgba(60,140,255,.5);
+    white-space:nowrap; opacity:0; transition:opacity .3s ease;
+  }
+  .plabel:after{
+    content:''; position:absolute; left:50%; top:100%; width:1px; height:9px; margin-top:2px;
+    background:linear-gradient(180deg, rgba(160,200,255,.7), rgba(160,200,255,0));
+  }
+  #loading{
+    position:fixed; inset:0; z-index:20; background:radial-gradient(80% 60% at 50% 45%, #0a1324, #03060d 75%);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px;
+    transition:opacity .6s ease;
+  }
+  #loading.hide{opacity:0; pointer-events:none}
+  #loading .lt{font-family:var(--mono); font-size:11px; letter-spacing:.3em; text-transform:uppercase; color:#9cc4ee}
+  #loading .lbar{width:250px; height:2px; background:rgba(255,255,255,.1); border-radius:2px; overflow:hidden}
+  #loading .lbar > i{display:block; height:100%; width:0%; background:linear-gradient(90deg,#2f7fc9,#4fd1ff); transition:width .3s ease}
+  #loading .ls{font-family:var(--mono); font-size:9.5px; color:#5c7396}
+  #loading .orb{
+    width:74px; height:74px; border-radius:50%;
+    background:radial-gradient(circle at 34% 30%, #6fc4ff, #1d4f8d 58%, #071a33 100%);
+    box-shadow:0 0 44px rgba(79,180,255,.45), inset -10px -8px 22px rgba(0,0,0,.6);
+  }
+
+  @media (max-width:1240px){
+    #ui{grid-template-columns:304px minmax(0,1fr) 348px}
+  }
+  @media (max-width:1000px){
+    #ui{grid-template-columns:1fr; grid-template-rows:auto auto auto auto; overflow:auto; pointer-events:auto}
+    #topbar,#bottombar{grid-column:1/2}
+    #col-left{grid-column:1/2; grid-row:2/3} #col-right{grid-column:1/2; grid-row:3/4}
+    #bottombar{grid-row:4/5}
+    .panel{max-height:none}
+    #labels{display:none}
+  }
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+<div id="vignette"></div>
+<div id="labels"></div>
+
+<div id="ui">
+  <!-- ---------- top bar ---------- -->
+  <div class="panel" id="topbar">
+    <div id="brand">
+      <span class="mark">TF-5180</span>
+      <h1>TERRA FREIGHT <span>· global logistics command</span></h1>
+    </div>
+    <div class="seg">
+      <span class="lbl">view</span>
+      <button id="preset-earth" class="on">Earth</button>
+      <button id="preset-system">System</button>
+      <button id="preset-moon">Moon</button>
+      <button id="preset-follow">Follow</button>
+    </div>
+    <div class="seg">
+      <span class="lbl">sim</span>
+      <button id="btn-pause">Pause</button>
+      <button id="btn-speed">1×</button>
+    </div>
+    <div class="spacer"></div>
+    <div id="sun-wrap">
+      <span class="lbl">sun</span>
+      <input id="sun-range" type="range" min="0" max="360" step="1" value="118" />
+    </div>
+    <div class="pill"><span class="dot live"></span><span id="link-status">TELEMETRY LINK</span></div>
+    <div id="clock">--:--:--<small id="clock-sub">UTC · —</small></div>
+  </div>
+
+  <!-- ---------- left ---------- -->
+  <div id="col-left">
+    <div class="panel">
+      <div class="panel-head"><h2>Delivery Statistics</h2><span class="tag" id="stats-window">live</span></div>
+      <div class="panel-body">
+        <div class="kpis">
+          <div class="kpi"><div class="k">Active</div><div class="v" id="stat-active">0</div><div class="sub" id="stat-active-sub">in transit</div></div>
+          <div class="kpi good"><div class="k">On-time</div><div class="v" id="stat-ontime">—</div><div class="sub" id="stat-ontime-sub">of delivered</div></div>
+          <div class="kpi"><div class="k">Delivered</div><div class="v" id="stat-delivered">0</div><div class="sub" id="stat-delivered-sub">this session</div></div>
+          <div class="kpi"><div class="k">Avg ETA</div><div class="v" id="stat-eta">—</div><div class="sub" id="stat-eta-sub">to next port</div></div>
+        </div>
+        <div class="meter">
+          <div class="row"><span>Fleet progress</span><span id="fleet-progress-val">0%</span></div>
+          <div class="bar"><i id="fleet-progress"></i></div>
+        </div>
+        <div class="meter">
+          <div class="row"><span>Capacity utilisation</span><span id="util-val">0%</span></div>
+          <div class="bar" id="util-bar"><i id="util"></i></div>
+        </div>
+        <div class="meter">
+          <div class="row"><span>Network congestion</span><span id="cong-val">0%</span></div>
+          <div class="bar warn" id="cong-bar"><i id="cong"></i></div>
+        </div>
+        <div class="split">
+          <div id="spark">
+            <div class="row" style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:9.5px;color:var(--muted);margin-bottom:4px">
+              <span>DELIVERIES / MIN</span><span id="spark-peak">peak 0</span>
+            </div>
+            <svg id="spark-svg" viewBox="0 0 200 44" preserveAspectRatio="none"></svg>
+          </div>
+          <div id="gauge">
+            <svg viewBox="0 0 76 76" width="76" height="76">
+              <circle cx="38" cy="38" r="32" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="6"/>
+              <circle id="gauge-arc" cx="38" cy="38" r="32" fill="none" stroke="#ffc45c" stroke-width="6"
+                      stroke-linecap="round" stroke-dasharray="201 201" stroke-dashoffset="150"/>
+            </svg>
+            <div class="gl"><div class="gv" id="gauge-val">—</div><div class="gk">risk</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" style="flex:0 1 auto; max-height:46%">
+      <div class="panel-head"><h2>Risk Alerts</h2><span class="tag" id="alert-count">0 open</span></div>
+      <div class="panel-body tight" id="alert-list"><div class="empty">No active alerts</div></div>
+    </div>
+  </div>
+
+  <!-- ---------- right ---------- -->
+  <div id="col-right">
+    <div class="panel" style="flex:1 1 auto">
+      <div class="panel-head"><h2>Live Shipments</h2><span class="tag" id="ship-count">0 tracked</span></div>
+      <div class="panel-body tight" id="shipment-list"><div class="empty">Awaiting telemetry…</div></div>
+    </div>
+
+    <div class="panel" style="flex:0 0 auto">
+      <div class="panel-head"><h2>Route Planner</h2><span class="tag" id="planner-tag">great-circle</span></div>
+      <div class="panel-body">
+        <div class="form">
+          <div class="field"><label for="planner-from">Origin port</label><select id="planner-from"></select></div>
+          <div class="field"><label for="planner-to">Destination port</label><select id="planner-to"></select></div>
+          <div class="field"><label for="planner-cargo">Cargo class</label><select id="planner-cargo"></select></div>
+          <div class="field"><label for="planner-priority">Priority</label><select id="planner-priority"></select></div>
+          <button id="planner-dispatch">Dispatch route</button>
+        </div>
+        <div class="hintline" id="planner-info">Select two ports to preview a great-circle lane over the globe.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------- bottom ---------- -->
+  <div class="panel" id="bottombar">
+    <div class="lg"><span class="sw" style="background:#4fd1ff"></span>In transit</div>
+    <div class="lg"><span class="sw" style="background:#ffc45c"></span>Delayed</div>
+    <div class="lg"><span class="sw" style="background:#ff5f74"></span>At risk</div>
+    <div class="lg"><span class="sw" style="background:#49e39b"></span>Delivered</div>
+    <div class="lg" style="color:var(--dim)">| <span id="foot-stats">—</span></div>
+    <div class="spacer"></div>
+    <div id="hint">drag orbit · scroll zoom · click a shipment to track · hover a marker for detail</div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+<div id="tooltip"></div>
+
+<div id="loading">
+  <div class="orb"></div>
+  <div class="lt">Initialising orbital telemetry</div>
+  <div class="lbar"><i id="load-bar"></i></div>
+  <div class="ls" id="load-status">loading planetary surface data…</div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* =====================================================================
+   TERRA FREIGHT — freight-tracking dashboard
+   Single-file Three.js application. Assets live in ./public/textures/
+   (2K–4K equirectangular maps; see README.md).
+   ===================================================================== */
+
+const DEG = THREE.MathUtils.degToRad;
+const EARTH_R = 10;
+const SIM_HOURS_PER_SEC = 4;          // 1 real second = 4 simulated hours
+const EARTH_SPIN_PERIOD = 300;        // seconds per decorative Earth rotation
+const SEED_DATE = new Date('2026-09-28T06:00:00Z');
+
+/* ------------------------------------------------------------------ */
+/* errors are captured so verification can assert a clean console      */
+/* ------------------------------------------------------------------ */
+const app = {
+  ready:false, errors:[], scene:null, camera:null, renderer:null, controls:null,
+  shipments:[], alerts:[], ports:[], planets:[], stats:{}, sim:{hours:0, running:true, speed:1},
+  selected:null, sunAzimuth:118, sunElevation:11, deliveredLog:[],
+};
+window.__app = app;
+window.addEventListener('error', e => app.errors.push(String(e.message || e.error)));
+window.addEventListener('unhandledrejection', e => app.errors.push('rejection: ' + String(e.reason)));
+
+/* ------------------------------------------------------------------ */
+/* static data: ports, cargo, priority, hazard zones                   */
+/* ------------------------------------------------------------------ */
+const PORTS = [
+  { code:'CNSHA', name:'Shanghai',        lat: 31.23, lon: 121.47 },
+  { code:'SGSIN', name:'Singapore',       lat:  1.29, lon: 103.85 },
+  { code:'NLRTM', name:'Rotterdam',       lat: 51.95, lon:   4.14 },
+  { code:'USLAX', name:'Los Angeles',     lat: 33.74, lon:-118.27 },
+  { code:'AEJEA', name:'Jebel Ali',       lat: 25.01, lon:  55.06 },
+  { code:'BRSSZ', name:'Santos',          lat:-23.96, lon: -46.33 },
+  { code:'KRPUS', name:'Busan',           lat: 35.18, lon: 129.08 },
+  { code:'DEHAM', name:'Hamburg',         lat: 53.55, lon:   9.99 },
+  { code:'USNYC', name:'New York',        lat: 40.67, lon: -74.01 },
+  { code:'INBOM', name:'Mumbai',          lat: 18.95, lon:  72.84 },
+  { code:'ZADUR', name:'Durban',          lat:-29.87, lon:  31.03 },
+  { code:'AUSYD', name:'Sydney',          lat:-33.87, lon: 151.21 },
+];
+const CARGO = [
+  { id:'CONT', label:'Containerised goods', risk: 1.00, speed: 1.00 },
+  { id:'ELEC', label:'Electronics',         risk: 1.18, speed: 1.06 },
+  { id:'AUTO', label:'Automotive parts',    risk: 1.05, speed: 1.00 },
+  { id:'PHRM', label:'Pharmaceuticals',     risk: 1.30, speed: 1.10 },
+  { id:'BULK', label:'Bulk grain',          risk: 0.92, speed: 0.94 },
+  { id:'LNG',  label:'LNG / cryogenic',     risk: 1.34, speed: 0.92 },
+  { id:'MACH', label:'Heavy machinery',     risk: 1.02, speed: 0.97 },
+];
+const PRIORITY = [
+  { id:'STD',  label:'Standard',  speed: 1.00, risk: 1.00 },
+  { id:'EXP',  label:'Express',   speed: 1.18, risk: 1.08 },
+  { id:'CRIT', label:'Critical',  speed: 1.38, risk: 1.20 },
+];
+// maritime chokepoints / hazard basins (lat, lon, radius in degrees, weight)
+const HAZARDS = [
+  { name:'Bab el-Mandeb',    lat: 12.60, lon:  43.40, r:  3.0, w: 30 },
+  { name:'Gulf of Aden',     lat: 12.30, lon:  47.60, r:  4.5, w: 24 },
+  { name:'Strait of Hormuz', lat: 26.55, lon:  56.30, r:  2.5, w: 22 },
+  { name:'Suez approach',    lat: 30.10, lon:  32.60, r:  3.2, w: 18 },
+  { name:'Red Sea',          lat: 20.00, lon:  38.00, r:  6.0, w: 14 },
+  { name:'South China Sea',  lat: 13.00, lon: 114.00, r:  9.0, w: 20 },
+  { name:'Malacca Strait',   lat:  2.50, lon: 101.00, r:  2.6, w: 20 },
+  { name:'Panama Canal',     lat:  9.10, lon: -79.60, r:  3.0, w: 16 },
+  { name:'Cape of Good Hope',lat:-35.00, lon:  19.50, r:  6.0, w: 14 },
+  { name:'North Atlantic',   lat: 46.00, lon: -38.00, r: 12.0, w: 12 },
+  { name:'Bay of Bengal',    lat: 15.00, lon:  88.00, r:  8.0, w: 12 },
+  { name:'Luzon Strait',     lat: 20.50, lon: 121.50, r:  4.0, w: 10 },
+];
+
+const INCIDENTS = [
+  { id:'wx',  label:'Typhoon system intercept',      risk: 22, slow: 0.62, hours: 34, sev:'crit' },
+  { id:'cong',label:'Port congestion at arrival',    risk: 14, slow: 0.74, hours: 26, sev:'mid'  },
+  { id:'pir', label:'Piracy watch — convoy reroute', risk: 26, slow: 0.80, hours: 20, sev:'crit' },
+  { id:'mec', label:'Propulsion fault, reduced speed',risk: 18, slow: 0.58, hours: 22, sev:'mid'  },
+  { id:'cus', label:'Customs documentation hold',    risk: 11, slow: 0.88, hours: 18, sev:'low'  },
+  { id:'ice', label:'Heavy swell / icing advisory',  risk: 15, slow: 0.70, hours: 20, sev:'mid'  },
+];
+const PALETTE = { transit:0x4fd1ff, delayed:0xffc45c, risk:0xff5f74, done:0x49e39b };
+
+/* ------------------------------------------------------------------ */
+/* math helpers                                                        */
+/* ------------------------------------------------------------------ */
+const dirFromLatLon = (lat, lon, r = EARTH_R) => new THREE.Vector3().setFromSphericalCoords(
+  r, Math.PI / 2 - DEG(lat), DEG(lon));
+const clamp01 = v => Math.min(1, Math.max(0, v));
+const fmtInt = n => new Intl.NumberFormat('en-US', { maximumFractionDigits:0 }).format(n);
+
+function greatCircle(a, b, t, lift = 0){
+  const qa = a.clone().normalize(), qb = b.clone().normalize();
+  const omega = Math.acos(THREE.MathUtils.clamp(qa.dot(qb), -1, 1));
+  let p;
+  if (omega < 1e-5) p = qa.clone();
+  else {
+    const so = Math.sin(omega);
+    p = qa.clone().multiplyScalar(Math.sin((1 - t) * omega) / so)
+         .add(qb.clone().multiplyScalar(Math.sin(t * omega) / so));
+  }
+  return p.normalize().multiplyScalar(EARTH_R * (1 + lift * Math.sin(Math.PI * clamp01(t))));
+}
+function arcPoints(a, b, segs = 96, lift = 0.012){
+  const pts = [];
+  for (let i = 0; i <= segs; i++) pts.push(greatCircle(a, b, i / segs, lift));
+  return pts;
+}
+function angularDistanceKm(a, b){
+  const omega = Math.acos(THREE.MathUtils.clamp(a.clone().normalize().dot(b.clone().normalize()), -1, 1));
+  return omega * 6371;
+}
+const seededRandom = (() => { let s = 20260928; return () => (s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff; })();
+
+/* ------------------------------------------------------------------ */
+/* seaway graph — freight lanes follow maritime corridors, not the     */
+/* geometric great circle (which would cut straight over continents).  */
+/* ------------------------------------------------------------------ */
+/* seaway corridor network — validated against the ocean mask by tools/seaway_check.py
+   (no corridor crosses more than 90 km of terrain) */
+const WAYPOINTS = [
+  // name,               lat,     lon     (every node verified in open water)
+  // East Asia
+  ['East China Sea', 30.00, 126.50],
+  ['Pacific Exit', 30.80, 133.20],
+  ['NW Pacific', 32.50, 146.00],
+  ['North Pacific', 33.00, -165.00],
+  ['East of Taiwan', 22.50, 124.20],
+  ['Luzon Strait', 20.50, 121.50],
+  ['Philippine Sea', 12.00, 130.00],
+  ['South China Sea', 13.00, 114.00],
+  ['Natuna Sea', 3.00, 106.50],
+  ['Singapore Strait', 1.24, 104.20],
+  ['Malacca Strait', 2.00, 102.60],
+  ['Malacca West', 3.10, 101.30],
+  ['Malacca North', 4.20, 100.00],
+  ['Northern Malacca', 5.60, 97.80],
+  ['Banda Aceh', 6.00, 95.50],
+  // Indonesia / Australia
+  ['Sulu Sea', 8.00, 119.50],
+  ['Celebes Sea', 3.50, 123.50],
+  ['Sulawesi Sea', 2.50, 119.50],
+  ['Makassar Strait', 0.00, 118.60],
+  ['Flores Sea', -8.00, 119.50],
+  ['Banda Sea', -5.50, 128.00],
+  ['Arafura Sea', -9.00, 135.00],
+  ['Torres Approach', -10.50, 146.00],
+  ['Coral Sea', -18.00, 155.00],
+  ['Tasman Sea', -30.00, 158.00],
+  ['Tasman South', -36.00, 152.00],
+  ['Sydney Coast', -33.50, 154.00],
+  ['Bass Strait', -39.50, 146.80],
+  ['Great Aus Bight', -36.50, 128.00],
+  ['SW Australia', -35.00, 105.00],
+  // Indian Ocean
+  ['Indian Ocean', -25.00, 80.00],
+  ['South of Sri Lanka', 4.80, 80.60],
+  ['Colombo Roads', 6.50, 79.50],
+  ['Bay of Bengal', 14.00, 88.00],
+  ['Arabian Sea', 15.50, 62.00],
+  ['Oman Basin', 22.50, 60.60],
+  ['Hormuz', 26.40, 56.40],
+  ['Socotra Passage', 12.80, 54.50],
+  ['Gulf of Aden', 12.30, 47.60],
+  ['Bab el-Mandeb', 12.60, 43.40],
+  ['Red Sea', 20.00, 38.00],
+  ['Suez', 30.10, 32.60],
+  // Mediterranean
+  ['Levantine Basin', 33.00, 30.50],
+  ['South of Crete', 34.00, 24.00],
+  ['Central Med', 35.00, 18.00],
+  ['Ionian Sea', 35.60, 15.20],
+  ['Sicily Channel', 36.60, 12.50],
+  ['Sardinia Channel', 38.00, 9.60],
+  ['Algerian Basin', 37.20, 3.50],
+  ['Alboran Sea', 36.20, -1.80],
+  ['Gibraltar', 35.90, -5.60],
+  // Atlantic Europe
+  ['Cape St Vincent', 36.60, -9.30],
+  ['Finisterre', 43.90, -9.80],
+  ['Biscay', 45.60, -6.00],
+  ['Ushant', 48.70, -5.80],
+  ['English Channel', 49.95, -2.30],
+  ['Channel East', 50.15, 0.20],
+  ['Dover Strait', 51.05, 1.45],
+  ['Southern North Sea', 52.60, 3.00],
+  ['German Bight', 54.20, 6.60],
+  ['Elbe Approach', 54.00, 8.20],
+  ['North Atlantic', 46.00, -38.00],
+  // Americas
+  ['New York Roads', 39.80, -71.50],
+  ['Bermuda Rise', 30.00, -60.00],
+  ['Atlantic Approach', 21.00, -57.00],
+  ['Anegada Passage', 19.30, -64.60],
+  ['Caribbean', 15.50, -68.50],
+  ['Venezuela Basin', 13.50, -70.00],
+  ['Colombia Basin', 12.00, -77.50],
+  ['Gulf of Panama', 6.00, -80.50],
+  ['Equatorial Atlantic', 2.00, -38.00],
+  ['NE Brazil', -9.00, -30.50],
+  ['Abrolhos', -18.00, -38.00],
+  ['South Brazil', -30.00, -45.00],
+  ['Santos Roads', -25.60, -44.20],
+  ['South Atlantic', -25.00, -25.00],
+  ['Agulhas Bank', -35.80, 22.50],
+  ['Southern Agulhas', -36.50, 27.00],
+  ['Durban Roads', -30.50, 31.60],
+  ['Cape of Good Hope', -35.00, 19.50],
+  // Pacific
+  ['Central Pacific', 12.00, -115.00],
+  ['South Pacific', -20.00, -140.00],
+  ['Panama', 8.90, -79.55],                 // canal transit node
+].map(([name, lat, lon]) => ({ name, lat, lon, kind:'waypoint' }));
+
+const NODES = [...PORTS.map(p => ({ ...p, kind:'port' })), ...WAYPOINTS];
+const NODE_IX = new Map();
+NODES.forEach((n, i) => { NODE_IX.set(n.name, i); if (n.kind === 'port') NODE_IX.set(n.code, i); });
+
+// maritime corridors: each edge is a short open-water hop between waypoints
+const EDGES = [
+  // East Asia
+  ['CNSHA','East China Sea'],
+  ['KRPUS','East China Sea'],
+  ['East China Sea','Pacific Exit'],
+  ['East China Sea','East of Taiwan'],
+  ['Pacific Exit','NW Pacific'],
+  ['NW Pacific','North Pacific'],
+  ['NW Pacific','Luzon Strait'],
+  ['East of Taiwan','South China Sea'],
+  ['East of Taiwan','Luzon Strait'],
+  ['Luzon Strait','Philippine Sea'],
+  ['Luzon Strait','South China Sea'],
+  ['Philippine Sea','Celebes Sea'],
+  ['South China Sea','Natuna Sea'],
+  ['South China Sea','Sulu Sea'],
+  ['Sulu Sea','Celebes Sea'],
+  ['Celebes Sea','Sulawesi Sea'],
+  ['Natuna Sea','Singapore Strait'],
+  ['Singapore Strait','SGSIN'],
+  ['Singapore Strait','Malacca Strait'],
+  ['Malacca Strait','Malacca West'],
+  ['Malacca West','Malacca North'],
+  ['Malacca North','Northern Malacca'],
+  ['Northern Malacca','Banda Aceh'],
+  ['Banda Aceh','South of Sri Lanka'],
+  // Indonesia -> Australia
+  ['Sulawesi Sea','Makassar Strait'],
+  ['Makassar Strait','Flores Sea'],
+  ['Flores Sea','Banda Sea'],
+  ['Banda Sea','Arafura Sea'],
+  ['Arafura Sea','Torres Approach'],
+  ['Torres Approach','Coral Sea'],
+  ['Coral Sea','Sydney Coast'],
+  ['Sydney Coast','AUSYD'],
+  ['Coral Sea','Tasman Sea'],
+  ['Tasman Sea','Tasman South'],
+  ['Tasman Sea','Bass Strait'],
+  ['Tasman South','Bass Strait'],
+  ['Bass Strait','AUSYD'],
+  ['Bass Strait','Great Aus Bight'],
+  ['Great Aus Bight','SW Australia'],
+  ['SW Australia','Indian Ocean'],
+  // Indian Ocean
+  ['South of Sri Lanka','Colombo Roads'],
+  ['South of Sri Lanka','Bay of Bengal'],
+  ['Colombo Roads','Arabian Sea'],
+  ['Indian Ocean','Colombo Roads'],
+  ['INBOM','Arabian Sea'],
+  ['Arabian Sea','Gulf of Aden'],
+  ['Arabian Sea','Oman Basin'],
+  ['Arabian Sea','Socotra Passage'],
+  ['Socotra Passage','Gulf of Aden'],
+  // Persian Gulf
+  ['AEJEA','Hormuz'],
+  ['Hormuz','Oman Basin'],
+  ['Oman Basin','Socotra Passage'],
+  // Red Sea / Suez / Med
+  ['Gulf of Aden','Bab el-Mandeb'],
+  ['Bab el-Mandeb','Red Sea'],
+  ['Red Sea','Suez'],
+  ['Suez','Levantine Basin'],
+  ['Levantine Basin','South of Crete'],
+  ['South of Crete','Central Med'],
+  ['Central Med','Ionian Sea'],
+  ['Ionian Sea','Sicily Channel'],
+  ['Sicily Channel','Sardinia Channel'],
+  ['Sardinia Channel','Algerian Basin'],
+  ['Algerian Basin','Alboran Sea'],
+  ['Alboran Sea','Gibraltar'],
+  // Europe
+  ['Gibraltar','Cape St Vincent'],
+  ['Cape St Vincent','Finisterre'],
+  ['Finisterre','Biscay'],
+  ['Biscay','Ushant'],
+  ['Ushant','English Channel'],
+  ['English Channel','Channel East'],
+  ['Channel East','Dover Strait'],
+  ['Dover Strait','Southern North Sea'],
+  ['Southern North Sea','NLRTM'],
+  ['Southern North Sea','German Bight'],
+  ['German Bight','Elbe Approach'],
+  ['Elbe Approach','DEHAM'],
+  ['English Channel','North Atlantic'],
+  ['Finisterre','North Atlantic'],
+  // Atlantic
+  ['North Atlantic','New York Roads'],
+  ['New York Roads','USNYC'],
+  ['New York Roads','Bermuda Rise'],
+  ['Bermuda Rise','Atlantic Approach'],
+  ['Atlantic Approach','Anegada Passage'],
+  ['Anegada Passage','Caribbean'],
+  ['Caribbean','Venezuela Basin'],
+  ['Venezuela Basin','Colombia Basin'],
+  ['Colombia Basin','Gulf of Panama'],
+  ['Gulf of Panama','Panama'],
+  ['Caribbean','Equatorial Atlantic'],
+  ['Equatorial Atlantic','NE Brazil'],
+  ['NE Brazil','Abrolhos'],
+  ['Abrolhos','South Brazil'],
+  ['South Brazil','Santos Roads'],
+  ['Santos Roads','BRSSZ'],
+  ['South Brazil','South Atlantic'],
+  ['South Atlantic','NE Brazil'],
+  // Africa south
+  ['South Atlantic','Agulhas Bank'],
+  ['South Atlantic','Cape of Good Hope'],
+  ['Cape of Good Hope','Agulhas Bank'],
+  ['Agulhas Bank','Southern Agulhas'],
+  ['Southern Agulhas','Durban Roads'],
+  ['Durban Roads','ZADUR'],
+  ['Indian Ocean','Cape of Good Hope'],
+  ['Indian Ocean','SW Australia'],
+  // Pacific
+  ['Panama','Gulf of Panama'],
+  ['Gulf of Panama','Central Pacific'],
+  ['Central Pacific','USLAX'],
+  ['Central Pacific','North Pacific'],
+  ['North Pacific','USLAX'],
+  ['North Pacific','South Pacific'],
+  ['South Pacific','Tasman Sea']
+];
+
+const GRAPH = NODES.map(() => []);
+function haversineKm(a, b){ return angularDistanceKm(dirFromLatLon(a.lat, a.lon), dirFromLatLon(b.lat, b.lon)); }
+function hazardCostAt(lat, lon){
+  let c = 0;
+  for (const h of HAZARDS){
+    const d = Math.hypot((lat - h.lat) * 0.9, (((lon - h.lon + 540) % 360) - 180) * Math.cos(DEG(lat)));
+    if (d < h.r) c += h.w * (1 - d / h.r) * 0.08;
+  }
+  return c;
+}
+for (const [a, b] of EDGES){
+  const ia = NODE_IX.get(a), ib = NODE_IX.get(b);
+  if (ia === undefined || ib === undefined){ console.warn('seaway edge references unknown node', a, b); continue; }
+  const na = NODES[ia], nb = NODES[ib];
+  const km = haversineKm(na, nb);
+  const mid = { lat: (na.lat + nb.lat) / 2, lon: ((na.lon + nb.lon) / 2 + 540) % 360 - 180 };
+  const cost = km * (1 + hazardCostAt(mid.lat, mid.lon) * 0.02);
+  GRAPH[ia].push({ to: ib, cost }); GRAPH[ib].push({ to: ia, cost });
+}
+function seawayRoute(fromCode, toCode){
+  const start = NODE_IX.get(fromCode), goal = NODE_IX.get(toCode);
+  if (start === undefined || goal === undefined) return null;
+  const dist = new Array(NODES.length).fill(Infinity);
+  const prev = new Array(NODES.length).fill(-1);
+  const seen = new Array(NODES.length).fill(false);
+  dist[start] = 0;
+  for (;;){
+    let u = -1, best = Infinity;
+    for (let i = 0; i < NODES.length; i++) if (!seen[i] && dist[i] < best){ best = dist[i]; u = i; }
+    if (u === -1 || u === goal) break;
+    seen[u] = true;
+    for (const e of GRAPH[u]) if (dist[u] + e.cost < dist[e.to]){ dist[e.to] = dist[u] + e.cost; prev[e.to] = u; }
+  }
+  if (dist[goal] === Infinity) return null;
+  const chain = [];
+  for (let i = goal; i !== -1; i = prev[i]) chain.unshift(NODES[i]);
+  return chain;
+}
+const _hp = new THREE.Vector3();
+// risk from the closest approach to each chokepoint corridor (density independent)
+function assessRoute(built, cargo, priority){
+  const samples = built.raw.filter((_, i) => i % 2 === 0 && i < built.raw.length - 1);
+  let hazardRisk = 0; const crossed = [];
+  for (const h of HAZARDS){
+    let dmin = Infinity;
+    for (const p of samples){
+      const sph = new THREE.Spherical().setFromVector3(_hp.copy(p).normalize());
+      const lat = 90 - THREE.MathUtils.radToDeg(sph.phi), lon = THREE.MathUtils.radToDeg(sph.theta);
+      const d = Math.hypot((lat - h.lat) * 0.9, (((lon - h.lon + 540) % 360) - 180) * Math.cos(DEG(lat)));
+      if (d < dmin) dmin = d;
+    }
+    const outer = h.r * 2.6;
+    if (dmin < outer){
+      hazardRisk += h.w * (1 - dmin / outer);
+      if (dmin < h.r) crossed.push(h.name);
+    }
+  }
+  const baseRisk = Math.min(74, Math.max(2, hazardRisk * 0.42) * cargo.risk * priority.risk);
+  return { baseRisk, crossed };
+}
+
+function buildSeawayPath(chain){
+  const legs = [];
+  let total = 0;
+  for (let i = 0; i < chain.length - 1; i++){
+    const a = dirFromLatLon(chain[i].lat, chain[i].lon);
+    const b = dirFromLatLon(chain[i + 1].lat, chain[i + 1].lon);
+    const km = angularDistanceKm(a, b);
+    legs.push({ a, b, km }); total += km;
+  }
+  const raw = [];
+  for (const leg of legs){
+    const segs = Math.max(4, Math.round(SEG * (leg.km / total)));
+    for (let i = 0; i < segs; i++) raw.push(greatCircle(leg.a, leg.b, i / segs, 0));
+  }
+  const last = chain[chain.length - 1];
+  raw.push(dirFromLatLon(last.lat, last.lon));
+  const cum = [0];
+  for (let i = 1; i < raw.length; i++) cum.push(cum[i - 1] + raw[i].distanceTo(raw[i - 1]));
+  const span = cum[cum.length - 1] || 1;
+  const points = raw.map((p, i) => p.clone().multiplyScalar(1 + 0.014 * Math.sin(Math.PI * (cum[i] / span))));
+  return { points, raw, km: total };
+}
+/* ------------------------------------------------------------------ */
+/* procedural textures (stars, glows) — no external assets needed      */
+/* ------------------------------------------------------------------ */
+function radialTexture(size = 256, stops){
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  const g = c.getContext('2d');
+  const grd = g.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  for (const [o, col] of stops) grd.addColorStop(o, col);
+  g.fillStyle = grd; g.fillRect(0, 0, size, size);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+const glowTex = radialTexture(256, [[0, 'rgba(255,255,255,1)'], [0.18, 'rgba(255,255,255,.85)'],
+  [0.42, 'rgba(255,255,255,.28)'], [0.72, 'rgba(255,255,255,.05)'], [1, 'rgba(255,255,255,0)']]);
+const softDotTex = radialTexture(128, [[0, 'rgba(255,255,255,1)'], [0.35, 'rgba(255,255,255,.6)'],
+  [0.7, 'rgba(255,255,255,.16)'], [1, 'rgba(255,255,255,0)']]);
+
+/* ------------------------------------------------------------------ */
+/* renderer / scene / camera                                           */
+/* ------------------------------------------------------------------ */
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, powerPreference:'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setSize(window.innerWidth, window.innerHeight, false);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+app.renderer = renderer;
+
+const scene = new THREE.Scene();
+app.scene = scene;
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.15, 6000);
+camera.position.set(18.5, 8.5, 24);
+app.camera = camera;
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.065;
+controls.rotateSpeed = 0.42;
+controls.zoomSpeed = 0.85;
+controls.minDistance = 12.6;
+controls.maxDistance = 900;
+controls.target.set(0, 0, 0);
+app.controls = controls;
+
+/* ------------------------------------------------------------------ */
+/* sun: a single directional light + emissive billboards               */
+/* ------------------------------------------------------------------ */
+const sunDir = new THREE.Vector3();
+function updateSunDirection(){
+  const az = DEG(app.sunAzimuth), el = DEG(app.sunElevation);
+  sunDir.set(Math.cos(el) * Math.sin(az), Math.sin(el), Math.cos(el) * Math.cos(az)).normalize();
+  sunLight.position.copy(sunDir).multiplyScalar(600);
+  sunGlow.position.copy(sunDir).multiplyScalar(1600);
+  sunCore.position.copy(sunDir).multiplyScalar(1600);
+  for (const m of Object.values(app.materials || {})) if (m.uniforms && m.uniforms.uSunDir) m.uniforms.uSunDir.value.copy(sunDir);
+}
+// the single light source for every body in the scene
+const sunLight = new THREE.DirectionalLight(0xfff4e2, 3.3);
+sunLight.position.set(1, 1, 1);
+scene.add(sunLight);
+
+const sunGlow = new THREE.Sprite(new THREE.SpriteMaterial({
+  map: glowTex, color: 0xffe6b0, blending: THREE.AdditiveBlending, transparent: true,
+  depthWrite: false, opacity: 0.85,
+}));
+sunGlow.scale.setScalar(430);
+const sunCore = new THREE.Sprite(new THREE.SpriteMaterial({
+  map: softDotTex, color: 0xfffdf3, blending: THREE.AdditiveBlending, transparent: true,
+  depthWrite: false, opacity: 1,
+}));
+sunCore.scale.setScalar(120);
+scene.add(sunGlow, sunCore);
+
+/* ------------------------------------------------------------------ */
+/* starfield: 3 layers (band stars, field stars, bright stars)          */
+/* ------------------------------------------------------------------ */
+function makeStars(count, radiusMin, radiusMax, sizeMin, sizeMax, bandBias){
+  const pos = new Float32Array(count * 3), col = new Float32Array(count * 3);
+  const siz = new Float32Array(count), pha = new Float32Array(count);
+  const bandAxis = new THREE.Vector3(0.42, 0.72, 0.55).normalize();
+  const q = new THREE.Quaternion(), tmp = new THREE.Vector3();
+  const c = new THREE.Color();
+  for (let i = 0; i < count; i++){
+    let v;
+    if (bandBias && Math.random() < bandBias){
+      // concentrate near a great circle to fake a galactic band
+      const a = Math.random() * Math.PI * 2;
+      const off = (Math.random() + Math.random() + Math.random() - 1.5) * 0.22;
+      v = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), a)
+        .applyAxisAngle(new THREE.Vector3(Math.cos(a), 0, -Math.sin(a)), off);
+      // rotate band onto the chosen axis
+      q.setFromUnitVectors(new THREE.Vector3(0, 1, 0), bandAxis);
+      v.applyQuaternion(q);
+    } else {
+      const u = Math.random() * 2 - 1, a = Math.random() * Math.PI * 2, s = Math.sqrt(1 - u * u);
+      v = new THREE.Vector3(s * Math.cos(a), u, s * Math.sin(a));
+    }
+    tmp.copy(v).multiplyScalar(radiusMin + Math.random() * (radiusMax - radiusMin));
+    pos[i * 3] = tmp.x; pos[i * 3 + 1] = tmp.y; pos[i * 3 + 2] = tmp.z;
+    const t = Math.random();
+    c.setHSL(t < 0.55 ? 0.58 : (t < 0.85 ? 0.11 : 0.02), 0.35 + Math.random() * 0.4, 0.72 + Math.random() * 0.28);
+    col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
+    siz[i] = sizeMin + Math.random() * (sizeMax - sizeMin);
+    pha[i] = Math.random() * Math.PI * 2;
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setAttribute('aColor', new THREE.BufferAttribute(col, 3));
+  g.setAttribute('aSize', new THREE.BufferAttribute(siz, 1));
+  g.setAttribute('aPhase', new THREE.BufferAttribute(pha, 1));
+  return g;
+}
+const starMaterial = new THREE.ShaderMaterial({
+  uniforms: { uTime: { value: 0 }, uPixelRatio: { value: renderer.getPixelRatio() }, uOpacity: { value: 1 } },
+  vertexShader: `
+    attribute vec3 aColor; attribute float aSize; attribute float aPhase;
+    uniform float uTime; uniform float uPixelRatio;
+    varying vec3 vColor; varying float vTwinkle;
+    void main(){
+      vColor = aColor;
+      vTwinkle = 0.72 + 0.28 * sin(uTime * 1.35 + aPhase * 4.0);
+      vec4 mv = modelViewMatrix * vec4(position, 1.0);
+      gl_Position = projectionMatrix * mv;
+      gl_PointSize = aSize * uPixelRatio * (1.0 + 0.35 * vTwinkle);
+    }`,
+  fragmentShader: `
+    varying vec3 vColor; varying float vTwinkle;
+    uniform float uOpacity;
+    void main(){
+      float d = length(gl_PointCoord - vec2(0.5));
+      if (d > 0.5) discard;
+      float core = smoothstep(0.5, 0.02, d);
+      float a = pow(core, 2.1) * vTwinkle * uOpacity;
+      gl_FragColor = vec4(vColor * (0.75 + 0.65 * core), a);
+      #include <tonemapping_fragment>
+    }`,
+  transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+});
+const stars = new THREE.Group();
+stars.add(new THREE.Points(makeStars(7000, 1300, 2600, 1.1, 2.6, 0.55), starMaterial));
+stars.add(new THREE.Points(makeStars(2600, 1300, 2600, 2.4, 4.2, 0.1), starMaterial));
+stars.add(new THREE.Points(makeStars(150, 1300, 2600, 6.0, 9.5, 0.0), starMaterial));
+scene.add(stars);
+
+/* ------------------------------------------------------------------ */
+/* Earth group hierarchy: tilt -> spin -> surfaces                     */
+/* ------------------------------------------------------------------ */
+const tiltGroup = new THREE.Group();
+tiltGroup.rotation.z = DEG(23.44);
+const spinGroup = new THREE.Group();
+tiltGroup.add(spinGroup);
+scene.add(tiltGroup);
+
+const manager = new THREE.LoadingManager();
+const loadBar = document.getElementById('load-bar');
+const loadStatus = document.getElementById('load-status');
+manager.onProgress = (url, loaded, total) => {
+  loadBar.style.width = Math.round((loaded / total) * 100) + '%';
+  loadStatus.textContent = 'streaming ' + url.split('/').pop();
+};
+const loader = new THREE.TextureLoader(manager);
+function loadTex(file, colorSpace = THREE.SRGBColorSpace, aniso = 8){
+  return new Promise(resolve => {
+    loader.load('./textures/' + file, t => {
+      t.colorSpace = colorSpace;
+      t.anisotropy = Math.min(aniso, renderer.capabilities.getMaxAnisotropy());
+      t.wrapS = THREE.RepeatWrapping;
+      resolve(t);
+    }, undefined, () => { app.errors.push('texture failed: ' + file); resolve(null); });
+  });
+}
+
+const earthMaterial = new THREE.ShaderMaterial({
+  uniforms: {
+    uDay: { value: null }, uNight: { value: null }, uSpec: { value: null }, uNormal: { value: null },
+    uSunDir: { value: sunDir.clone() }, uNormalScale: { value: 0.55 }, uNightBoost: { value: 1.0 },
+  },
+  vertexShader: `
+    varying vec2 vUv; varying vec3 vNormalW; varying vec3 vTangentW; varying vec3 vBitangentW; varying vec3 vWorld;
+    void main(){
+      vUv = uv;
+      vec4 wp = modelMatrix * vec4(position, 1.0);
+      vWorld = wp.xyz;
+      vNormalW = normalize(mat3(modelMatrix) * normal);
+      vec3 up = vec3(0.0, 1.0, 0.0);
+      vec3 t = cross(up, normal);
+      float l = length(t);
+      t = l > 0.001 ? t / l : vec3(0.0, 0.0, 1.0);
+      vec3 tw = normalize(mat3(modelMatrix) * t);
+      vTangentW = tw;
+      vBitangentW = normalize(cross(vNormalW, tw));
+      gl_Position = projectionMatrix * viewMatrix * wp;
+    }`,
+  fragmentShader: `
+    uniform sampler2D uDay, uNight, uSpec, uNormal;
+    uniform vec3 uSunDir; uniform float uNormalScale, uNightBoost;
+    varying vec2 vUv; varying vec3 vNormalW; varying vec3 vTangentW; varying vec3 vBitangentW; varying vec3 vWorld;
+
+    void main(){
+      vec3 Ng = normalize(vNormalW);
+      vec3 nm = texture2D(uNormal, vUv).xyz * 2.0 - 1.0;
+      vec3 N = normalize(Ng + (normalize(vTangentW) * nm.x + normalize(vBitangentW) * nm.y) * uNormalScale);
+      vec3 L = normalize(uSunDir);
+      vec3 V = normalize(cameraPosition - vWorld);
+
+      vec3 day = texture2D(uDay, vUv).rgb;
+      vec3 nightTex = texture2D(uNight, vUv).rgb;
+      float oceanMask = texture2D(uSpec, vUv).r;
+
+      float lambert = max(dot(N, L), 0.0);
+      float geoDot  = dot(Ng, L);
+      float dayMix  = smoothstep(-0.14, 0.24, geoDot);
+      float twilight = 1.0 - abs(geoDot);
+
+      vec3 dayColor = day * (0.045 + 0.955 * lambert);
+      // oceans: Blinn-Phong sun glint (geometric normal keeps it noise free)
+      vec3 H = normalize(L + V);
+      float glint = pow(max(dot(Ng, H), 0.0), 190.0) * oceanMask * 0.55;
+      // warm scattering band along the terminator
+      vec3 sunset = vec3(1.0, 0.46, 0.19) * pow(twilight, 7.0) * smoothstep(-0.34, 0.06, geoDot) * 0.30;
+
+      float lum = max(max(nightTex.r, nightTex.g), nightTex.b);
+      vec3 cityLights = vec3(1.0, 0.83, 0.55) * pow(lum, 1.25) * 2.55 * (1.0 - dayMix) * uNightBoost;
+
+      vec3 color = dayColor * mix(0.115, 1.0, dayMix) + cityLights + vec3(glint) + sunset;
+      gl_FragColor = vec4(color, 1.0);
+      #include <tonemapping_fragment>
+    }`,
+});
+app.materials = { earth: earthMaterial };
+
+const earthMesh = new THREE.Mesh(new THREE.SphereGeometry(EARTH_R, 96, 72), earthMaterial);
+spinGroup.add(earthMesh);
+
+/* --- clouds (slightly larger sphere, self-lit by the sun) ---------- */
+const cloudMaterial = new THREE.MeshStandardMaterial({
+  color: 0xffffff, transparent: true, roughness: 1, metalness: 0,
+  depthWrite: false, opacity: 0.86, alphaTest: 0.02,
+});
+const clouds = new THREE.Mesh(new THREE.SphereGeometry(EARTH_R * 1.012, 64, 48), cloudMaterial);
+spinGroup.add(clouds);
+
+/* --- atmosphere: back-side rim shell + additive outer halo --------- */
+const atmoShellMaterial = new THREE.ShaderMaterial({
+  uniforms: { uColor: { value: new THREE.Color(0x4aa4ff) }, uSunDir: { value: sunDir.clone() }, uPower: { value: 3.2 } },
+  vertexShader: `
+    varying vec3 vNormalW; varying vec3 vView;
+    void main(){
+      vNormalW = normalize(mat3(modelMatrix) * normal);
+      vec4 wp = modelMatrix * vec4(position, 1.0);
+      vView = normalize(cameraPosition - wp.xyz);
+      gl_Position = projectionMatrix * viewMatrix * wp;
+    }`,
+  fragmentShader: `
+    uniform vec3 uColor; uniform vec3 uSunDir; uniform float uPower;
+    varying vec3 vNormalW; varying vec3 vView;
+    void main(){
+      float rim = pow(1.0 - abs(dot(normalize(vNormalW), normalize(vView))), uPower);
+      float sunFacing = smoothstep(-0.32, 0.34, dot(normalize(vNormalW), normalize(uSunDir)));
+      float a = rim * (0.12 + 0.88 * sunFacing);
+      gl_FragColor = vec4(uColor * a * 1.55, a);
+      #include <tonemapping_fragment>
+    }`,
+  transparent: true, blending: THREE.AdditiveBlending, side: THREE.BackSide, depthWrite: false,
+});
+app.materials.atmoShell = atmoShellMaterial;
+const atmoShell = new THREE.Mesh(new THREE.SphereGeometry(EARTH_R * 1.045, 64, 48), atmoShellMaterial);
+atmoShell.renderOrder = 2;
+spinGroup.add(atmoShell);
+
+// billboard halo sits in scene space (Earth centre is the origin, so it stays centred while the globe spins)
+const haloMaterial = new THREE.ShaderMaterial({
+  uniforms: { uColor: { value: new THREE.Color(0x3f8fe0) }, uSunDir: { value: sunDir.clone() }, uEarthR: { value: EARTH_R }, uSize: { value: EARTH_R * 3.6 } },
+  vertexShader: `
+    varying vec2 vUv; varying vec3 vWorld;
+    void main(){ vUv = uv; vec4 wp = modelMatrix * vec4(position, 1.0); vWorld = wp.xyz;
+      gl_Position = projectionMatrix * viewMatrix * wp; }`,
+  fragmentShader: `
+    uniform vec3 uColor; uniform vec3 uSunDir; uniform float uEarthR, uSize;
+    varying vec2 vUv; varying vec3 vWorld;
+    void main(){
+      vec2 p = (vUv - 0.5) * uSize;            // world-unit offset from Earth centre
+      float d = length(p) / uEarthR;            // 0 at centre, 1 at horizon
+      // gate the glow to the region outside the silhouette so it never washes the globe
+      float gate = smoothstep(0.97, 1.06, d);
+      float limb = exp(-pow((d - 1.0) / 0.13, 2.0));
+      float a = clamp(limb * gate * 0.9, 0.0, 1.0);
+      float sunFacing = smoothstep(-0.45, 0.5, dot(normalize(vWorld), normalize(uSunDir)));
+      vec3 c = uColor * (0.5 + 0.8 * sunFacing);
+      gl_FragColor = vec4(c * a * 1.5, a * 0.95);
+      #include <tonemapping_fragment>
+    }`,
+  transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: true,
+});
+app.materials.halo = haloMaterial;
+const halo = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), haloMaterial);
+halo.scale.setScalar(EARTH_R * 3.6);
+halo.renderOrder = 3;
+scene.add(halo);
+
+/* ------------------------------------------------------------------ */
+/* Moon — tidally locked, inclined orbit around Earth                  */
+/* ------------------------------------------------------------------ */
+const MOON_R = EARTH_R * 0.273;
+const MOON_ORBIT = EARTH_R * 2.6;
+const moonOrbitGroup = new THREE.Group();
+moonOrbitGroup.rotation.x = DEG(5.14);
+scene.add(moonOrbitGroup);
+const moonPivot = new THREE.Group();
+moonOrbitGroup.add(moonPivot);
+const moonMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.95, metalness: 0, emissive: 0x0a1020, emissiveIntensity: 1 });
+const moon = new THREE.Mesh(new THREE.SphereGeometry(MOON_R, 48, 36), moonMaterial);
+moon.position.set(MOON_ORBIT, 0, 0);
+moonPivot.add(moon);
+{ // faint orbit ring
+  const pts = [];
+  for (let i = 0; i <= 180; i++){ const a = i / 180 * Math.PI * 2; pts.push(new THREE.Vector3(Math.cos(a) * MOON_ORBIT, 0, Math.sin(a) * MOON_ORBIT)); }
+  const ring = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
+    new THREE.LineBasicMaterial({ color: 0x6f8fc0, transparent: true, opacity: 0.17 }));
+  moonOrbitGroup.add(ring);
+}
+// moon glow sprite (child of moon so it always faces the camera through the sprite material)
+const moonGlow = new THREE.Sprite(new THREE.SpriteMaterial({
+  map: glowTex, color: 0xbfd6ff, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, opacity: 0.35,
+}));
+moonGlow.scale.setScalar(MOON_R * 3.4);
+moon.add(moonGlow);
+
+/* ------------------------------------------------------------------ */
+/* planets: stylised orrery ring around Earth, all lit by the one sun  */
+/* ------------------------------------------------------------------ */
+const PLANETS = [
+  { key:'mars',    name:'Mars',    file:'mars.jpg',    radius: 5.4, dist: 52,  y:  7,  spin: 0.06, tilt: 25.2 },
+  { key:'jupiter', name:'Jupiter', file:'jupiter.jpg', radius: 15.0,dist: 82,  y: -11, spin: 0.11, tilt:  3.1 },
+  { key:'saturn',  name:'Saturn',  file:'saturn.jpg',  radius: 12.5,dist: 116, y: 16,  spin: 0.09, tilt: 26.7 },
+  { key:'neptune', name:'Neptune', file:'neptune.jpg', radius: 8.0, dist: 152, y:-17,  spin: 0.07, tilt: 28.3 },
+];
+
+/* ------------------------------------------------------------------ */
+/* shipping lanes                                                      */
+/* ------------------------------------------------------------------ */
+const laneGroup = new THREE.Group();
+spinGroup.add(laneGroup);
+const SEG = 110;
+
+function buildShipment(fromPort, toPort, cargoId, priorityId, opts = {}){
+  const cargo = CARGO.find(c => c.id === cargoId) || CARGO[0];
+  const priority = PRIORITY.find(p => p.id === priorityId) || PRIORITY[0];
+  const chain = seawayRoute(fromPort.code, toPort.code);
+  const built = chain ? buildSeawayPath(chain) : null;
+  const a = dirFromLatLon(fromPort.lat, fromPort.lon);
+  const b = dirFromLatLon(toPort.lat, toPort.lon);
+  if (!built) app.errors.push('no seaway path ' + fromPort.code + '→' + toPort.code);
+  const km = built ? built.km : angularDistanceKm(a, b);
+  const hours = Math.max(6, km / (33 * cargo.speed * priority.speed));   // ~18 kn average
+  const voyageRealSeconds = THREE.MathUtils.clamp(hours / SIM_HOURS_PER_SEC, 26, 150);
+  const voyageHours = voyageRealSeconds * SIM_HOURS_PER_SEC;
+
+  const assessment = built
+    ? assessRoute(built, cargo, priority)
+    : { baseRisk: 24, crossed: [] };
+  const baseRisk = assessment.baseRisk;
+  const crossed = assessment.crossed;
+
+  const id = 'TF' + String(1000 + app.shipments.length + 1).padStart(4, '0') + (opts.suffix || '');
+  const points = built ? built.points : arcPoints(a, b, SEG, 0.014);
+  const geo = new THREE.BufferGeometry().setFromPoints(points);
+  const positions = new Float32Array(points.length * 3);
+  const cum = new Float32Array(points.length);
+  points.forEach((p, i) => {
+    positions[i * 3] = p.x; positions[i * 3 + 1] = p.y; positions[i * 3 + 2] = p.z;
+    if (i > 0) cum[i] = cum[i - 1] + p.distanceTo(points[i - 1]);
+  });
+  const total = cum[cum.length - 1] || 1;
+
+  const planned = new THREE.Line(geo, new THREE.LineDashedMaterial({
+    color: PALETTE.transit, dashSize: 0.34, gapSize: 0.26, transparent: true, opacity: 0.34,
+  }));
+  planned.computeLineDistances();
+  laneGroup.add(planned);
+
+  const trailGeo = geo.clone();
+  const trail = new THREE.Line(trailGeo, new THREE.LineBasicMaterial({
+    color: PALETTE.transit, transparent: true, opacity: 0.95,
+  }));
+  trailGeo.setDrawRange(0, 1);
+  laneGroup.add(trail);
+
+  const marker = new THREE.Mesh(new THREE.ConeGeometry(0.30, 1.05, 12),
+    new THREE.MeshBasicMaterial({ color: PALETTE.transit }));
+  laneGroup.add(marker);
+  const markerGlow = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: glowTex, color: PALETTE.transit, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, opacity: 0.9,
+  }));
+  markerGlow.scale.setScalar(2.6);
+  laneGroup.add(markerGlow);
+
+  const originDot = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: softDotTex, color: 0x9fd8ff, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, opacity: 0.8,
+  }));
+  originDot.scale.setScalar(1.5); originDot.position.copy(a);
+  const destDot = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: softDotTex, color: 0xffd9a0, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, opacity: 0.8,
+  }));
+  destDot.scale.setScalar(1.5); destDot.position.copy(b);
+  laneGroup.add(originDot, destDot);
+
+  const s = {
+    id, from: fromPort, to: toPort, cargo, priority, km,
+    points, progress: 0, elapsedHours: opts.elapsedHours ?? 0, voyageHours,
+    baseRisk, risk: baseRisk, status: 'transit', speedFactor: 1,
+    incidents: [], createdAt: app.sim.hours, deliveredAt: null, onTime: null,
+    containerCount: 900 + Math.floor(seededRandom() * 8200),
+    teu: 0, positions, cum, total,
+    objects: { planned, trail, trailGeo, marker, markerGlow, originDot, destDot },
+    hazardCrossed: [...crossed],
+  };
+  s.teu = Math.round(s.containerCount * 1.42);
+  app.shipments.push(s);
+  refreshShipmentRows();
+  return s;
+}
+
+function setShipmentColor(s, colorHex){
+  s.objects.trail.material.color.setHex(colorHex);
+  s.objects.markerGlow.material.color.setHex(colorHex);
+  s.objects.marker.material.color.setHex(colorHex);
+}
+
+/* seeded fleet so the dashboard is populated on first paint */
+const ROUTES = [
+  ['CNSHA','NLRTM','CONT','STD'], ['SGSIN','USLAX','ELEC','EXP'], ['AEJEA','DEHAM','AUTO','STD'],
+  ['CNSHA','USLAX','CONT','EXP'], ['INBOM','NLRTM','PHRM','CRIT'], ['BRSSZ','CNSHA','BULK','STD'],
+  ['KRPUS','USNYC','ELEC','EXP'], ['ZADUR','USNYC','MACH','STD'], ['AUSYD','SGSIN','BULK','STD'],
+  ['USNYC','NLRTM','LNG','EXP'], ['CNSHA','AUSYD','CONT','STD'], ['DEHAM','USNYC','AUTO','EXP'],
+];
+
+/* ------------------------------------------------------------------ */
+/* live simulation                                                     */
+/* ------------------------------------------------------------------ */
+const MAX_ALERTS = 7;
+
+function pushAlert(alert){
+  app.alerts.unshift(alert);
+  if (app.alerts.length > MAX_ALERTS) app.alerts.length = MAX_ALERTS;
+  renderAlerts();
+  renderAlertCount();
+}
+function renderAlertCount(){
+  document.getElementById('alert-count').textContent = app.alerts.length + ' open';
+}
+const alertListEl = document.getElementById('alert-list');
+function renderAlerts(){
+  if (!app.alerts.length){ alertListEl.innerHTML = '<div class="empty">No active alerts</div>'; return; }
+  alertListEl.innerHTML = '';
+  for (const a of app.alerts){
+    const el = document.createElement('div');
+    el.className = 'alert ' + (a.sev === 'crit' ? 'crit' : a.sev === 'mid' ? 'mid' : 'low');
+    el.dataset.alertId = a.id;
+    if (a.shipmentId) el.dataset.shipmentId = a.shipmentId;
+    const ic = document.createElement('div'); ic.className = 'ic';
+    ic.textContent = a.sev === 'crit' ? '▲' : a.sev === 'mid' ? '◆' : '●';
+    ic.style.color = a.sev === 'crit' ? 'var(--red)' : a.sev === 'mid' ? 'var(--amber)' : 'var(--cyan)';
+    const txt = document.createElement('div'); txt.className = 'txt';
+    const t = document.createElement('div'); t.className = 't'; t.textContent = a.title;
+    const sub = document.createElement('div'); sub.className = 's';
+    sub.textContent = [a.shipmentId, a.detail, a.time].filter(Boolean).join('  ·  ');
+    txt.append(t, sub);
+    const ack = document.createElement('button'); ack.className = 'ack'; ack.textContent = 'ack';
+    ack.addEventListener('click', ev => {
+      ev.stopPropagation();
+      app.alerts = app.alerts.filter(x => x.id !== a.id);
+      renderAlerts(); renderAlertCount();
+    });
+    el.append(ic, txt, ack);
+    el.addEventListener('click', () => { if (a.shipmentId) selectShipment(a.shipmentId, true); });
+    alertListEl.append(el);
+  }
+}
+
+function toast(title, detail, kind = '', ttl = 4200){
+  const box = document.getElementById('toasts');
+  const el = document.createElement('div');
+  el.className = 'toast ' + kind;
+  const t = document.createElement('div'); t.textContent = title;
+  el.append(t);
+  if (detail){ const d = document.createElement('small'); d.textContent = detail; el.append(d); }
+  box.append(el);
+  setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 320); }, ttl);
+}
+
+function spawnIncident(s, forced){
+  const inc = forced || INCIDENTS[Math.floor(Math.random() * INCIDENTS.length)];
+  const now = app.sim.hours;
+  const alert = {
+    id: 'AL' + Math.floor(now * 100) + '-' + s.id,
+    shipmentId: s.id, sev: inc.sev,
+    title: inc.label,
+    detail: s.from.code + '→' + s.to.code,
+    time: simClockString(now),
+    expiresAt: now + inc.hours,
+    incident: inc,
+  };
+  s.incidents.push(alert);
+  s.risk = Math.min(97, s.risk + inc.risk);
+  s.speedFactor = Math.min(s.speedFactor, inc.slow);
+  s.status = inc.risk >= 22 ? 'risk' : 'delayed';
+  pushAlert(alert);
+  toast('⚠ ' + inc.label, s.id + '  ·  ' + s.from.name + ' → ' + s.to.name, inc.sev === 'crit' ? 'bad' : 'warn');
+}
+
+function resolveIncidents(s, now){
+  const keep = [];
+  for (const inc of s.incidents){
+    if (now >= inc.expiresAt){
+      app.alerts = app.alerts.filter(a => a.id !== inc.id);
+      toast('✔ Incident cleared', s.id + '  ·  ' + inc.incident.label, 'good', 3200);
+    } else keep.push(inc);
+  }
+  if (keep.length !== s.incidents.length){
+    s.incidents = keep;
+    renderAlerts(); renderAlertCount();
+  }
+  if (!s.incidents.length && s.status !== 'done'){
+    s.status = 'transit';
+    s.speedFactor = 1;
+  } else if (s.incidents.length){
+    s.speedFactor = Math.min(...s.incidents.map(i => i.incident.slow));
+  }
+}
+
+function tickSimulation(dt){
+  if (!app.sim.running) return;
+  const scaled = dt * app.sim.speed;
+  app.sim.hours += scaled * SIM_HOURS_PER_SEC;
+  const now = app.sim.hours;
+
+  for (const s of app.shipments){
+    if (s.status === 'done') continue;
+    s.elapsedHours += scaled * SIM_HOURS_PER_SEC * s.speedFactor;
+    s.progress = clamp01(s.elapsedHours / s.voyageHours);
+    // risk relaxes back toward the route baseline
+    const target = s.baseRisk + s.incidents.reduce((a, i) => a + i.incident.risk * 0.75, 0);
+    s.risk += (target - s.risk) * Math.min(1, dt * 0.6);
+    resolveIncidents(s, now);
+    if (s.status !== 'done'){
+      s.status = s.risk >= 62 ? 'risk' : s.risk >= 32 ? 'delayed' : 'transit';
+    }
+
+    if (s.progress >= 1){
+      s.progress = 1; s.status = 'done'; s.deliveredAt = now;
+      s.onTime = !s.incidents.length && s.risk < 62;
+      s.incidents = [];
+      app.alerts = app.alerts.filter(a => a.shipmentId !== s.id);
+      renderAlerts(); renderAlertCount();
+      app.deliveredLog.push({ t: performance.now(), onTime: s.onTime });
+      toast((s.onTime ? '✔ Delivered' : '✔ Delivered late') + '  ·  ' + s.to.name,
+        s.id + '  ·  ' + fmtInt(s.containerCount) + ' TEU-class containers', s.onTime ? 'good' : 'warn');
+    }
+  }
+
+  // random incident generator
+  if (now - lastIncidentAt > 8 + Math.random() * 12){
+    lastIncidentAt = now;
+    const active = app.shipments.filter(s => s.status !== 'done' && s.progress > 0.06 && s.progress < 0.94);
+    if (active.length){
+      const pick = active[Math.floor(Math.random() * active.length)];
+      const maxConcurrent = pick.baseRisk > 24 ? 1 : 2;
+      if (pick.incidents.length < maxConcurrent) spawnIncident(pick);
+    }
+  }
+}
+
+let lastIncidentAt = 0;
+
+// samples the polyline by arc length so the vessel keeps a constant ground speed
+function samplePath(s, t){
+  const target = clamp01(t) * s.total;
+  let i = 1;
+  while (i < s.cum.length - 1 && s.cum[i] < target) i++;
+  const a0 = s.cum[i - 1], a1 = s.cum[i];
+  const f = a1 > a0 ? (target - a0) / (a1 - a0) : 0;
+  const read = (idx, out) => out.set(s.positions[idx * 3], s.positions[idx * 3 + 1], s.positions[idx * 3 + 2]);
+  const pa = read(i - 1, _v1), pb = read(i, _v2);
+  return pa.lerp(pb, f);
+}
+const _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3();
+
+function updateShipmentObjects(s){
+  let head;
+  if (s.progress <= 0){ head = 1; }
+  else {
+    const target = s.progress * s.total;
+    let i = 1;
+    while (i < s.cum.length - 1 && s.cum[i] < target) i++;
+    head = i + 1;
+  }
+  s.objects.trailGeo.setDrawRange(0, Math.min(s.cum.length, head));
+
+  const p = samplePath(s, s.progress).clone();
+  const pNext = samplePath(s, Math.min(1, s.progress + 0.02)).clone();
+  s.objects.marker.position.copy(p);
+  const tangent = pNext.sub(p).normalize();
+  if (tangent.lengthSq() > 0) s.objects.marker.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tangent);
+  s.objects.markerGlow.position.copy(p);
+  s.objects.marker.visible = true;
+  s.objects.markerGlow.visible = true;
+
+  const hex = PALETTE[s.status === 'done' ? 'done' : s.status] || PALETTE.transit;
+  setShipmentColor(s, hex);
+  s.objects.trail.material.opacity = s.status === 'done' ? 0.55 : 0.95;
+  s.objects.planned.material.opacity = s.status === 'done' ? 0.18 : 0.32;
+}
+
+/* ------------------------------------------------------------------ */
+/* DOM: shipments, stats, planner                                      */
+/* ------------------------------------------------------------------ */
+const shipListEl = document.getElementById('shipment-list');
+const rowRefs = new Map();
+
+function refreshShipmentRows(){
+  const ids = new Set(app.shipments.map(s => s.id));
+  for (const [id, ref] of rowRefs) if (!ids.has(id)){ ref.el.remove(); rowRefs.delete(id); }
+  if (!app.shipments.length){ shipListEl.innerHTML = '<div class="empty">Awaiting telemetry…</div>'; return; }
+  const placeholder = shipListEl.querySelector('.empty');
+  if (placeholder) placeholder.remove();
+  for (const s of app.shipments){
+    if (rowRefs.has(s.id)) continue;
+    const el = document.createElement('div');
+    el.className = 'ship'; el.dataset.shipmentId = s.id;
+    el.innerHTML = `
+      <div class="top">
+        <span class="id"></span><span class="cargo"></span><span class="st"></span>
+      </div>
+      <div class="route"><span class="a"></span><span class="arw">➜</span><span class="b"></span>
+        <span class="km" style="margin-left:auto"></span></div>
+      <div class="meta"><span>ETA <b class="eta"></b></span><span><b class="pct"></b> complete</span><span class="risk-t"></span></div>
+      <div class="pbar"><i></i></div>
+      <div class="riskbar"></div>`;
+    el.addEventListener('click', () => selectShipment(s.id, true));
+    shipListEl.append(el);
+    rowRefs.set(s.id, {
+      el,
+      id: el.querySelector('.id'), cargo: el.querySelector('.cargo'), st: el.querySelector('.st'),
+      a: el.querySelector('.a'), b: el.querySelector('.b'), km: el.querySelector('.km'),
+      eta: el.querySelector('.eta'), pct: el.querySelector('.pct'), riskT: el.querySelector('.risk-t'),
+      bar: el.querySelector('.pbar > i'), risk: el.querySelector('.riskbar'),
+    });
+  }
+  document.getElementById('ship-count').textContent = app.shipments.length + ' tracked';
+}
+
+function updateShipmentRow(s){
+  const r = rowRefs.get(s.id); if (!r) return;
+  const running = s.status !== 'done';
+  r.el.className = 'ship' + (running ? '' : ' done')
+    + (s.status === 'delayed' ? ' delayed' : s.status === 'risk' ? ' risk' : '')
+    + (app.selected === s.id ? ' sel' : '');
+  r.id.textContent = s.id;
+  r.cargo.textContent = s.cargo.label;
+  r.st.textContent = s.status === 'done' ? 'delivered' : s.status === 'risk' ? 'at risk'
+    : s.status === 'delayed' ? 'delayed' : 'in transit';
+  r.st.className = 'st ' + (s.status === 'done' ? 'done' : s.status === 'risk' ? 'risk'
+    : s.status === 'delayed' ? 'delayed' : 'transit');
+  r.a.textContent = s.from.name; r.b.textContent = s.to.name;
+  r.km.textContent = fmtInt(s.km) + ' km';
+  r.eta.textContent = etaLabel(s);
+  r.pct.textContent = Math.round(s.progress * 100) + '%';
+  r.riskT.textContent = 'risk ' + Math.round(s.risk);
+  r.bar.style.width = (s.progress * 100).toFixed(1) + '%';
+  r.risk.style.background = s.risk > 65 ? 'var(--red)' : s.risk > 40 ? 'var(--amber)' : 'var(--cyan)';
+  r.risk.style.opacity = s.status === 'done' ? 0.25 : 0.85;
+}
+
+function etaLabel(s){
+  if (s.status === 'done') return 'delivered';
+  const remainingHours = Math.max(0, (s.voyageHours - s.elapsedHours) / Math.max(0.15, s.speedFactor));
+  const eta = new Date(SEED_DATE.getTime() + (s.elapsedHours + remainingHours) * 3600e3);
+  return eta.toISOString().slice(5, 16).replace('T', ' ') + 'Z';
+}
+function simClockString(hours){
+  const d = new Date(SEED_DATE.getTime() + hours * 3600e3);
+  return d.toISOString().slice(11, 19) + 'Z';
+}
+function sessionDateLabel(hours){
+  const d = new Date(SEED_DATE.getTime() + hours * 3600e3);
+  return d.toISOString().slice(0, 10);
+}
+
+/* --- stats --- */
+const sparks = [];
+function pushSpark(delivered, t){
+  sparks.push({ t, delivered });
+  const cutoff = t - 60000;
+  while (sparks.length > 2 && sparks[0].t < cutoff) sparks.shift();
+}
+function renderStats(){
+  const active = app.shipments.filter(s => s.status !== 'done');
+  const done = app.shipments.filter(s => s.status === 'done');
+  const onTime = done.filter(s => s.onTime).length;
+  const avgProgress = active.length ? active.reduce((a, s) => a + s.progress, 0) / active.length : (done.length ? 1 : 0);
+  const avgRisk = active.length ? active.reduce((a, s) => a + s.risk, 0) / active.length : 0;
+  const utilisation = Math.min(99, 42 + active.length * 2.1 + avgProgress * 12);
+  const congestion = Math.min(99, avgRisk * 0.95 + app.alerts.length * 3.2);
+  const etas = active.map(s => (s.voyageHours - s.elapsedHours) / Math.max(0.15, s.speedFactor));
+  const avgEta = etas.length ? etas.reduce((a, b) => a + b, 0) / etas.length : 0;
+
+  document.getElementById('stat-active').textContent = active.length;
+  document.getElementById('stat-active-sub').textContent = done.length + ' delivered';
+  const otEl = document.getElementById('stat-ontime');
+  const ot = done.length ? Math.round((onTime / done.length) * 100) : null;
+  otEl.textContent = ot === null ? '—' : ot + '%';
+  otEl.parentElement.className = 'kpi ' + (ot === null ? '' : ot >= 92 ? 'good' : ot >= 80 ? 'warn' : 'bad');
+  document.getElementById('stat-ontime-sub').textContent = onTime + '/' + done.length + ' legs';
+  document.getElementById('stat-delivered').textContent = done.length;
+  document.getElementById('stat-delivered-sub').textContent = app.alerts.length + ' alerts open';
+  document.getElementById('stat-eta').textContent = avgEta ? (avgEta / 24).toFixed(1) + 'd' : '—';
+  document.getElementById('stat-eta-sub').textContent = avgEta ? (avgEta % 24).toFixed(0) + ' hours' : 'awaiting telemetry';
+
+  document.getElementById('fleet-progress').style.width = (avgProgress * 100).toFixed(1) + '%';
+  document.getElementById('fleet-progress-val').textContent = Math.round(avgProgress * 100) + '%';
+  document.getElementById('util').style.width = utilisation.toFixed(0) + '%';
+  document.getElementById('util-val').textContent = utilisation.toFixed(0) + '%';
+  document.getElementById('cong').style.width = congestion.toFixed(0) + '%';
+  document.getElementById('cong-val').textContent = congestion.toFixed(0) + '%';
+  document.getElementById('cong-bar').className = 'bar ' + (congestion > 66 ? 'bad' : congestion > 38 ? 'warn' : '');
+
+  const arc = document.getElementById('gauge-arc');
+  const circ = 2 * Math.PI * 32;
+  arc.setAttribute('stroke-dasharray', circ.toFixed(1) + ' ' + circ.toFixed(1));
+  arc.setAttribute('stroke-dashoffset', (circ * (1 - clamp01(avgRisk / 100))).toFixed(1));
+  arc.setAttribute('stroke', avgRisk > 65 ? '#ff5f74' : avgRisk > 40 ? '#ffc45c' : '#49e39b');
+  document.getElementById('gauge-val').textContent = Math.round(avgRisk);
+
+  const totalKm = app.shipments.reduce((a, s) => a + s.km, 0);
+  const totalTeu = app.shipments.reduce((a, s) => a + Math.round(s.teu * s.progress), 0);
+  document.getElementById('foot-stats').textContent =
+    fmtInt(Math.round(totalKm)) + ' km routed · ' + fmtInt(totalTeu) + ' TEU in motion · ' +
+    app.shipments.length + ' lanes · ' + sessionDateLabel(app.sim.hours);
+
+  app.stats = { active: active.length, delivered: done.length, onTime, avgRisk, avgProgress, utilisation, congestion, totalKm };
+  return app.stats;
+}
+function renderSpark(){
+  const svg = document.getElementById('spark-svg');
+  const t = performance.now();
+  pushSpark(app.deliveredLog.length, t);
+  const pts = sparks.length > 1 ? sparks : [{ t: t - 60000, delivered: 0 }, { t, delivered: app.deliveredLog.length }];
+  const t0 = pts[0].t, span = Math.max(1, t - t0);
+  const maxV = Math.max(1, ...pts.map(p => p.delivered));
+  const d = pts.map(p => {
+    const x = ((p.t - t0) / span) * 200;
+    const y = 42 - (p.delivered / maxV) * 36;
+    return x.toFixed(1) + ',' + y.toFixed(1);
+  }).join(' ');
+  svg.innerHTML = `
+    <defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4fd1ff" stop-opacity=".45"/>
+      <stop offset="100%" stop-color="#4fd1ff" stop-opacity="0"/>
+    </linearGradient></defs>
+    <polyline points="${d}" fill="none" stroke="#4fd1ff" stroke-width="1.4" stroke-linejoin="round"/>
+    <polygon points="${d} 200,44 0,44" fill="url(#sg)"/>`;
+  document.getElementById('spark-peak').textContent = 'peak ' + maxV;
+}
+
+/* --- planner --- */
+const fromSel = document.getElementById('planner-from');
+const toSel = document.getElementById('planner-to');
+const cargoSel = document.getElementById('planner-cargo');
+const prioSel = document.getElementById('planner-priority');
+const plannerInfo = document.getElementById('planner-info');
+function initPlanner(){
+  for (const p of PORTS){
+    fromSel.append(new Option(p.name + ' (' + p.code + ')', p.code));
+    toSel.append(new Option(p.name + ' (' + p.code + ')', p.code));
+  }
+  fromSel.value = 'CNSHA'; toSel.value = 'NLRTM';
+  for (const c of CARGO) cargoSel.append(new Option(c.label, c.id));
+  for (const p of PRIORITY) prioSel.append(new Option(p.label, p.id));
+  cargoSel.value = 'ELEC'; prioSel.value = 'EXP';
+  const analyse = () => {
+    const a = PORTS.find(p => p.code === fromSel.value), b = PORTS.find(p => p.code === toSel.value);
+    if (a.code === b.code) return { a, b, invalid:true };
+    const chain = seawayRoute(a.code, b.code);
+    const built = chain ? buildSeawayPath(chain) : null;
+    if (!built) return { a, b, invalid:true, noPath:true };
+    const cargo = CARGO.find(c => c.id === cargoSel.value), pr = PRIORITY.find(p => p.id === prioSel.value);
+    const hours = built.km / (33 * cargo.speed * pr.speed);
+    const { baseRisk, crossed } = assessRoute(built, cargo, pr);
+    return { a, b, built, cargo, pr, hours, baseRisk, crossed };
+  };
+  const update = () => {
+    const r = analyse();
+    if (r.invalid){
+      plannerInfo.innerHTML = r.noPath
+        ? '⚠ no maritime corridor connects these ports'
+        : '⚠ origin and destination are the same port';
+      return;
+    }
+    const riskTone = r.baseRisk > 55 ? 'var(--red)' : r.baseRisk > 34 ? 'var(--amber)' : 'var(--green)';
+    plannerInfo.innerHTML =
+      `<b style="color:#dbe9ff">${fmtInt(r.built.km)} km</b> maritime corridor · ` +
+      `~${(r.hours / 24).toFixed(1)} days at 18 kn · ${r.cargo.label} / ${r.pr.label}<br>` +
+      `<span style="color:${riskTone}">route risk ${Math.round(r.baseRisk)}</span>` +
+      (r.crossed.length ? ` · ${r.crossed.length} chokepoint${r.crossed.length > 1 ? 's' : ''}: ${r.crossed.slice(0, 3).join(', ')}` : ' · open water');
+    const legCount = r.built.raw.length;
+    document.getElementById('planner-tag').textContent = legCount > 30 ? 'multi-leg seaway' : 'great-circle';
+  };
+  const previewMat = new THREE.LineDashedMaterial({ color: 0x9fd8ff, dashSize: 0.3, gapSize: 0.24, transparent: true, opacity: 0.45 });
+  const preview = new THREE.Line(new THREE.BufferGeometry(), previewMat);
+  preview.frustumCulled = false;
+  laneGroup.add(preview);
+  let previewKey = '';
+  const drawPreview = () => {
+    const r = analyse();
+    if (r.invalid){ preview.visible = false; previewKey = ''; return; }
+    const key = fromSel.value + toSel.value;
+    if (key === previewKey){ preview.visible = true; return; }
+    previewKey = key;
+    preview.geometry.dispose();
+    preview.geometry = new THREE.BufferGeometry().setFromPoints(r.built.points);
+    preview.computeLineDistances();
+    preview.visible = true;
+  };
+  for (const el of [fromSel, toSel, cargoSel, prioSel]) el.addEventListener('change', () => { update(); drawPreview(); });
+  update(); drawPreview();
+  document.getElementById('planner-dispatch').addEventListener('click', () => {
+    const a = PORTS.find(p => p.code === fromSel.value), b = PORTS.find(p => p.code === toSel.value);
+    if (a.code === b.code){ toast('⚠ Invalid route', 'origin and destination must differ', 'bad'); return; }
+    const s = buildShipment(a, b, cargoSel.value, prioSel.value, { suffix: 'X' });
+    toast('⛴ Route dispatched', s.id + '  ·  ' + a.name + ' → ' + b.name + '  ·  ' + fmtInt(s.km) + ' km', 'good');
+    selectShipment(s.id, true);
+    update();
+  });
+}
+
+/* --- selection & camera ------------------------------------------- */
+let cameraTween = null;
+function tweenCamera(pos, target, dur = 1.15){
+  cameraTween = {
+    p0: camera.position.clone(), p1: pos.clone(),
+    t0: controls.target.clone(), t1: target.clone(),
+    start: performance.now(), dur: dur * 1000,
+  };
+}
+function selectShipment(id, focus){
+  app.selected = id;
+  for (const s of app.shipments) if (rowRefs.has(s.id)) updateShipmentRow(s);
+  const el = rowRefs.get(id)?.el;
+  if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  if (focus){ const s = app.shipments.find(x => x.id === id); if (s) focusShipment(s); }
+  const presetFollow = document.getElementById('preset-follow');
+  if (presetFollow.classList.contains('on')) focusShipment(app.shipments.find(s => s.id === id));
+}
+function focusShipment(s){
+  if (!s) return;
+  const p = s.objects.marker.getWorldPosition(new THREE.Vector3());
+  const outward = p.clone().normalize();
+  tweenCamera(p.clone().add(outward.multiplyScalar(7.5)).add(new THREE.Vector3(0, 2.2, 0)), p, 1.0);
+}
+
+/* ------------------------------------------------------------------ */
+/* interaction: presets, sun slider, pause, hover tooltip              */
+/* ------------------------------------------------------------------ */
+const PRESETS = {
+  earth: () => tweenCamera(new THREE.Vector3(18.5, 8.5, 24), new THREE.Vector3(0, 0, 0), 1.15),
+  system: () => tweenCamera(new THREE.Vector3(10, 322, 118), new THREE.Vector3(0, 0, 0), 1.35),
+  moon: () => {
+    const mp = moon.getWorldPosition(new THREE.Vector3());
+    // sit between the sun and the Moon so the lit hemisphere faces the camera
+    const view = sunDir.clone().normalize().multiplyScalar(0.86).add(new THREE.Vector3(0, 0.38, 0)).normalize();
+    tweenCamera(mp.clone().add(view.multiplyScalar(MOON_R * 8.5)), mp, 1.2);
+  },
+  follow: () => { const s = app.shipments.find(x => x.id === app.selected) || app.shipments.find(x => x.status !== 'done'); focusShipment(s); },
+};
+function setPreset(name){
+  for (const b of document.querySelectorAll('#topbar .seg:first-of-type button')) b.classList.remove('on');
+  const btn = document.getElementById('preset-' + name);
+  if (btn) btn.classList.add('on');
+  PRESETS[name]();
+}
+for (const name of Object.keys(PRESETS)) document.getElementById('preset-' + name).addEventListener('click', () => setPreset(name));
+
+const sunRange = document.getElementById('sun-range');
+sunRange.addEventListener('input', () => { app.sunAzimuth = Number(sunRange.value); updateSunDirection(); });
+document.getElementById('btn-pause').addEventListener('click', e => {
+  app.sim.running = !app.sim.running;
+  e.target.textContent = app.sim.running ? 'Pause' : 'Resume';
+  e.target.classList.toggle('on', !app.sim.running);
+  toast(app.sim.running ? '▶ Simulation resumed' : '⏸ Simulation paused', 'telemetry clock ' + simClockString(app.sim.hours));
+});
+const SPEEDS = [1, 2, 4];
+document.getElementById('btn-speed').addEventListener('click', e => {
+  const i = (SPEEDS.indexOf(app.sim.speed) + 1) % SPEEDS.length;
+  app.sim.speed = SPEEDS[i];
+  e.target.textContent = SPEEDS[i] + '×';
+  e.target.classList.toggle('on', SPEEDS[i] !== 1);
+});
+window.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if (e.code === 'Space'){ e.preventDefault(); document.getElementById('btn-pause').click(); }
+  if (e.key === '1') setPreset('earth');
+  if (e.key === '2') setPreset('system');
+  if (e.key === '3') setPreset('moon');
+  if (e.key === '4') setPreset('follow');
+});
+
+const tooltip = document.getElementById('tooltip');
+const raycaster = new THREE.Raycaster();
+raycaster.params.Sprite = { threshold: 0.6 };
+const pointer = new THREE.Vector2(-10, -10);
+let hovered = null;
+renderer.domElement.addEventListener('pointermove', e => {
+  pointer.set((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
+  tooltip.style.left = Math.min(window.innerWidth - 260, e.clientX + 14) + 'px';
+  tooltip.style.top = (e.clientY + 14) + 'px';
+});
+renderer.domElement.addEventListener('pointerdown', () => {
+  if (hovered) selectShipment(hovered.id, false);
+});
+function updateHover(){
+  raycaster.setFromCamera(pointer, camera);
+  const markers = app.shipments.filter(s => s.objects.markerGlow.visible).map(s => s.objects.markerGlow);
+  const hits = raycaster.intersectObjects(markers, false);
+  (document.body.style).cursor = '';
+  if (hits.length){
+    const s = app.shipments.find(x => x.objects.markerGlow === hits[0].object);
+    hovered = s;
+    if (s){
+      const status = s.status === 'done' ? 'delivered' : s.status === 'risk' ? 'at risk' : s.status;
+      tooltip.innerHTML =
+        `<b>${s.id}</b> · ${status}<br>` +
+        `<span class="k">lane</span> ${s.from.name} → ${s.to.name}<br>` +
+        `<span class="k">cargo</span> ${s.cargo.label}<br>` +
+        `<span class="k">voyage</span> ${fmtInt(s.km)} km · ${(s.voyageHours / 24).toFixed(1)} d<br>` +
+        `<span class="k">progress</span> ${(s.progress * 100).toFixed(1)}% · risk ${Math.round(s.risk)}<br>` +
+        `<span class="k">eta</span> ${etaLabel(s)}`;
+      tooltip.style.opacity = '1';
+      renderer.domElement.style.cursor = 'pointer';
+      return;
+    }
+  }
+  hovered = null;
+  tooltip.style.opacity = '0';
+}
+
+/* ------------------------------------------------------------------ */
+/* planet labels (HTML overlay projected each frame)                   */
+/* ------------------------------------------------------------------ */
+const labelLayer = document.getElementById('labels');
+const labelEls = new Map();
+function ensureLabel(key, text){
+  if (!labelEls.has(key)){
+    const el = document.createElement('div');
+    el.className = 'plabel'; el.textContent = text;
+    labelLayer.append(el);
+    labelEls.set(key, el);
+  }
+  return labelEls.get(key);
+}
+function project(v3){
+  const p = v3.clone().project(camera);
+  return { x: (p.x * 0.5 + 0.5) * window.innerWidth, y: (-p.y * 0.5 + 0.5) * window.innerHeight, z: p.z };
+}
+
+/* ------------------------------------------------------------------ */
+/* boot: load textures, build planets, start loop                      */
+/* ------------------------------------------------------------------ */
+let planetSpin = [];
+async function boot(){
+  const files = [
+    'earth_day.jpg', 'earth_night.jpg', 'earth_specular.jpg', 'earth_normal.jpg', 'earth_clouds.png',
+    'moon.jpg', 'jupiter.jpg', 'saturn.jpg', 'saturn_ring_alpha.png', 'mars.jpg', 'neptune.jpg',
+  ];
+  const LINEAR = new Set(['earth_specular.jpg', 'earth_normal.jpg']);
+  const [day, night, spec, norm, cloud, moonTex, ...rest] =
+    await Promise.all(files.map(f => loadTex(f, LINEAR.has(f) ? THREE.NoColorSpace : THREE.SRGBColorSpace)));
+  earthMaterial.uniforms.uDay.value = day;
+  earthMaterial.uniforms.uNight.value = night;
+  earthMaterial.uniforms.uSpec.value = spec;
+  earthMaterial.uniforms.uNormal.value = norm;
+  cloudMaterial.map = cloud; cloudMaterial.needsUpdate = true;
+  cloudMaterial.alphaMap = cloud; cloudMaterial.transparent = true;
+  moonMaterial.map = moonTex; moonMaterial.needsUpdate = true;
+  if (!day){
+    // graceful degradation if the asset bundle is unavailable
+    earthMaterial.uniforms.uDay.value = radialTexture(8, [[0, '#1b4a7a'], [1, '#0d2740']]);
+    earthMaterial.uniforms.uNight.value = earthMaterial.uniforms.uDay.value;
+    earthMaterial.uniforms.uSpec.value = earthMaterial.uniforms.uDay.value;
+    earthMaterial.uniforms.uNormal.value = earthMaterial.uniforms.uDay.value;
+  }
+
+  const [jupTex, satTex, ringTex, marsTex, nepTex] = rest;
+  const texByKey = { jupiter: jupTex, saturn: satTex, mars: marsTex, neptune: nepTex };
+
+  for (const def of PLANETS){
+    const az = DEG(def.key === 'mars' ? 28 : def.key === 'jupiter' ? 122 : def.key === 'saturn' ? 214 : 300);
+    const group = new THREE.Group();
+    group.position.set(Math.sin(az) * def.dist, def.y, Math.cos(az) * def.dist);
+    const material = new THREE.MeshStandardMaterial({
+      map: texByKey[def.key] || null, color: texByKey[def.key] ? 0xffffff : 0x8899aa,
+      roughness: 0.92, metalness: 0.0,
+      emissive: new THREE.Color(0x0a1020), emissiveIntensity: 1,   // starlight floor, not a second light
+    });
+    const mesh = new THREE.Mesh(new THREE.SphereGeometry(def.radius, 64, 48), material);
+    mesh.rotation.z = DEG(def.tilt) * 0.35;
+    group.add(mesh);
+    if (def.key === 'saturn' && ringTex){
+      const inner = def.radius * 1.22, outer = def.radius * 2.35;
+      const ringGeo = new THREE.RingGeometry(inner, outer, 220, 1);
+      const pos = ringGeo.attributes.position, uv = ringGeo.attributes.uv;
+      const v = new THREE.Vector3();
+      for (let i = 0; i < pos.count; i++){
+        v.fromBufferAttribute(pos, i);
+        const r = v.length();
+        uv.setXY(i, clamp01((r - inner) / (outer - inner)), (i % 2 === 0) ? 1 : 0);
+      }
+      uv.needsUpdate = true;
+      ringGeo.rotateX(-Math.PI / 2);
+      const ringMat = new THREE.MeshStandardMaterial({
+        map: ringTex, transparent: true, side: THREE.DoubleSide, roughness: 1, metalness: 0,
+        depthWrite: false, opacity: 0.95, emissive: 0x0a0a12, emissiveIntensity: 0.4,
+      });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.z = DEG(def.tilt) * 0.35;
+      group.add(ring);
+    }
+    // faint atmosphere glow for the gas giants
+    if (def.key === 'jupiter' || def.key === 'neptune'){
+      const shell = new THREE.Mesh(new THREE.SphereGeometry(def.radius * 1.045, 48, 36), new THREE.ShaderMaterial({
+        uniforms: { uColor: { value: new THREE.Color(def.key === 'jupiter' ? 0xd8b98a : 0x5c86ff) }, uSunDir: { value: sunDir.clone() } },
+        vertexShader: `varying vec3 vN; varying vec3 vV;
+          void main(){ vN = normalize(mat3(modelMatrix)*normal); vec4 wp = modelMatrix*vec4(position,1.0);
+            vV = normalize(cameraPosition - wp.xyz); gl_Position = projectionMatrix*viewMatrix*wp; }`,
+        fragmentShader: `uniform vec3 uColor; uniform vec3 uSunDir; varying vec3 vN; varying vec3 vV;
+          void main(){ float rim = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 3.4);
+            float s = smoothstep(-0.3, 0.35, dot(normalize(vN), normalize(uSunDir)));
+            float a = rim * (0.1 + 0.9*s);
+            gl_FragColor = vec4(uColor * a * 1.4, a);
+            #include <tonemapping_fragment> }`,
+        transparent: true, blending: THREE.AdditiveBlending, side: THREE.BackSide, depthWrite: false,
+      }));
+      group.add(shell);
+    }
+    scene.add(group);
+    app.planets.push({ ...def, group, mesh });
+    planetSpin.push({ mesh, rate: def.spin });
+    ensureLabel(def.key, def.name);
+  }
+  ensureLabel('moon', 'Moon');
+  ensureLabel('sun', 'Sun');
+
+  // seed the fleet
+  const seededElapsed = [8, 22, 37, 51, 66, 14, 29, 44, 58, 72, 5, 33];
+  ROUTES.forEach((r, i) => {
+    const from = PORTS.find(p => p.code === r[0]), to = PORTS.find(p => p.code === r[1]);
+    const sh = buildShipment(from, to, r[2], r[3]);
+    sh.elapsedHours = Math.min(sh.voyageHours * (seededElapsed[i % seededElapsed.length] / 100), sh.voyageHours * 0.9);
+    sh.progress = sh.elapsedHours / sh.voyageHours;
+    sh.status = sh.risk >= 62 ? 'risk' : sh.risk >= 32 ? 'delayed' : 'transit';
+  });
+  // pre-existing incidents so the alert board is never empty on load
+  const flagged = [...app.shipments].sort((a, b) => b.baseRisk - a.baseRisk).slice(0, 2);
+  flagged.forEach(sh => spawnIncident(sh));
+  lastIncidentAt = app.sim.hours;
+
+  refreshShipmentRows();
+  renderStats(); renderSpark(); renderAlertCount();
+  updateSunDirection();
+
+  document.getElementById('load-status').textContent = 'systems nominal';
+  loadBar.style.width = '100%';
+  setTimeout(() => {
+    const l = document.getElementById('loading');
+    l.classList.add('hide');
+    setTimeout(() => l.remove(), 700);
+  }, 320);
+
+  app.ready = true;
+  toast('◉ Terra Freight online', app.shipments.length + ' lanes tracked · ' + app.alerts.length + ' alerts open');
+}
+
+/* ------------------------------------------------------------------ */
+/* resize + main loop                                                  */
+/* ------------------------------------------------------------------ */
+function onResize(){
+  const w = window.innerWidth, h = window.innerHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setSize(w, h, false);
+  starMaterial.uniforms.uPixelRatio.value = renderer.getPixelRatio();
+}
+window.addEventListener('resize', onResize);
+
+const clock = new THREE.Clock();
+let uiAccum = 0, starAccum = 0;
+function animate(){
+  requestAnimationFrame(animate);
+  const dt = Math.min(0.05, clock.getDelta());
+  const now = performance.now();
+
+  if (app.ready){
+    tickSimulation(dt);
+
+    // decorative Earth spin + cloud drift
+    spinGroup.rotation.y += (dt / EARTH_SPIN_PERIOD) * Math.PI * 2 * 0.5;
+    clouds.rotation.y += (dt / (EARTH_SPIN_PERIOD * 0.62)) * Math.PI * 2 * 0.5;
+
+    // moon orbit: 27.32 simulated days, tidally locked to Earth
+    moonPivot.rotation.y = (app.sim.hours / (27.32 * 24)) * Math.PI * 2;
+    moon.rotation.y = moonPivot.rotation.y + Math.PI;
+
+    for (const p of planetSpin) p.mesh.rotation.y += dt * p.rate * 0.35;
+    for (const pl of app.planets) pl.group.position.y = pl.y + Math.sin(app.sim.hours * 0.0016 + pl.dist) * 2.2;
+
+    starAccum += dt;
+    starMaterial.uniforms.uTime.value = starAccum;
+
+    // halo billboard faces the camera (Earth centre is the scene origin)
+    halo.quaternion.copy(camera.quaternion);
+
+    for (const s of app.shipments) updateShipmentObjects(s);
+
+    // camera tween
+    if (cameraTween){
+      const k = clamp01((now - cameraTween.start) / cameraTween.dur);
+      const e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+      camera.position.lerpVectors(cameraTween.p0, cameraTween.p1, e);
+      controls.target.lerpVectors(cameraTween.t0, cameraTween.t1, e);
+      if (k >= 1) cameraTween = null;
+    }
+    controls.update();
+    updateHover();
+
+    // DOM refresh at a sane rate
+    uiAccum += dt;
+    if (uiAccum > 0.28){
+      uiAccum = 0;
+      for (const s of app.shipments) updateShipmentRow(s);
+      renderStats(); renderSpark();
+      const d = new Date(SEED_DATE.getTime() + app.sim.hours * 3600e3);
+      document.getElementById('clock').firstChild.nodeValue = d.toISOString().slice(11, 19);
+      document.getElementById('clock-sub').textContent = 'UTC · ' + sessionDateLabel(app.sim.hours) + ' · sim ' + app.sim.speed + '×';
+      document.getElementById('link-status').textContent = app.alerts.length ? app.alerts.length + ' ALERTS' : 'TELEMETRY LINK';
+    }
+
+    // planet labels
+    const camNearEarth = camera.position.length() < 46;
+    for (const pl of app.planets){
+      const el = labelEls.get(pl.key);
+      const p = project(pl.group.position.clone());
+      const dist = camera.position.distanceTo(pl.group.position);
+      const on = p.z < 1 && !camNearEarth && dist < 700;
+      el.style.opacity = on ? '1' : '0';
+      if (on){ el.style.left = p.x + 'px'; el.style.top = (p.y - 14) + 'px'; }
+    }
+    {
+      const el = labelEls.get('moon');
+      const mp = moon.getWorldPosition(new THREE.Vector3());
+      const p = project(mp);
+      const dist = camera.position.distanceTo(mp);
+      const on = p.z < 1 && dist < 90;
+      el.style.opacity = on ? '1' : '0';
+      if (on){ el.style.left = p.x + 'px'; el.style.top = (p.y - 12) + 'px'; }
+    }
+    {
+      const el = labelEls.get('sun');
+      const sp = sunGlow.position.clone();
+      const p = project(sp);
+      const dot = sp.clone().normalize().dot(camera.position.clone().normalize());
+      const on = p.z < 1 && dot > -0.2;
+      el.style.opacity = on ? '1' : '0';
+      if (on){ el.style.left = p.x + 'px'; el.style.top = (p.y - 26) + 'px'; }
+    }
+  }
+
+  renderer.render(scene, camera);
+}
+
+initPlanner();
+updateSunDirection();
+onResize();
+animate();
+boot().catch(err => { app.errors.push('boot failed: ' + err.message); console.error(err); });
+
+/* verification surface (used by automated smoke checks) */
+app.addShipment = (fromCode, toCode, cargoId, prioId) => buildShipment(
+  PORTS.find(p => p.code === fromCode), PORTS.find(p => p.code === toCode), cargoId, prioId, { suffix: 'X' });
+app.setSunAzimuth = deg => { app.sunAzimuth = deg; sunRange.value = String(deg); updateSunDirection(); };
+app.setPaused = v => { app.sim.running = !v; };
+app.cameraPreset = n => setPreset(n);
+app.focus = id => selectShipment(id, true);
+app.cameraInfo = () => ({ pos: camera.position.toArray(), target: controls.target.toArray() });
+app.planetKeys = () => app.planets.map(p => p.key);
+app.audit = () => ({
+  lights: (() => { const l = []; scene.traverse(o => { if (o.isLight) l.push(o.type); }); return l; })(),
+  moon: { orbitY: moonPivot.rotation.y, spinY: moon.rotation.y, world: moon.getWorldPosition(new THREE.Vector3()).toArray().map(v => +v.toFixed(2)) },
+  clouds: { radius: clouds.geometry.parameters.radius, opacity: cloudMaterial.opacity, spin: clouds.rotation.y, visible: clouds.visible, hasMap: !!cloudMaterial.map },
+  earthSpin: spinGroup.rotation.y,
+  planets: app.planets.map(p => ({ key: p.key, lit: p.mesh.material.type, hasMap: !!p.mesh.material.map, sunDot: +p.group.position.clone().normalize().dot(sunDir).toFixed(2) })),
+  saturnRing: (() => { let r = null; app.planets.find(p => p.key === 'saturn').group.traverse(o => { if (o.geometry && o.geometry.type === 'RingGeometry') r = { inner: o.geometry.parameters.innerRadius, outer: o.geometry.parameters.outerRadius, mapped: !!o.material.map, doubleSide: o.material.side === THREE.DoubleSide }; }); return r; })(),
+  halo: { visible: halo.visible, gated: haloMaterial.fragmentShader.includes('smoothstep(0.97, 1.06, d)') },
+  lanes: app.shipments.map(s => s.id).length,
+  sunDir: sunDir.toArray().map(v => +v.toFixed(3)),
+  stars: stars.children.map(c => c.geometry.attributes.position.count),
+});
+app.shipmentSnapshot = () => app.shipments.map(s => ({ id:s.id, status:s.status, progress:+s.progress.toFixed(3), risk:+s.risk.toFixed(1) }));
+</script>
+</body>
+</html>

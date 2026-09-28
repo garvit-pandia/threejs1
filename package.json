@@ -1,0 +1,20 @@
+{
+  "name": "threejs1",
+  "version": "1.0.0",
+  "description": "Freight-tracking dashboard: realistic 3D Earth + solar system, single-file Three.js app",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 5180 --strictPort"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "three": "^0.169.0",
+    "vite": "^5.4.21"
+  },
+  "private": true,
+  "type": "module"
+}
