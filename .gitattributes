@@ -1,0 +1,21 @@
+# Normalise line endings so Windows checkouts do not show every file as modified.
+# Files are stored with LF in the repo; CRLF is materialised only on checkout
+# for the file types where it matters to Windows tooling.
+* text=auto eol=lf
+
+# Never let Git normalise binary assets.
+*.jpg  binary
+*.jpeg binary
+*.png  binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+
+# PowerShell and batch files, if they are ever added, need CRLF to run.
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+*.ps1  text eol=crlf
+
+# Keep lockfiles and generated output out of diffs and language stats.
+package-lock.json  -diff linguist-generated
+docs/screenshots/* linguist-documentation

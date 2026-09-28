@@ -167,12 +167,61 @@ wrapping, it sheds non-essential chrome at 1560, 1460, 1360, 1280, 1200 and
 
 ## Getting started
 
+Requires **Node 18+** (Vite 5). Python 3 with Pillow is needed only for the
+corridor validator, not to run the app.
+
 ```bash
 npm install
 npm run dev       # dev server  → http://localhost:5180
 npm run build     # production bundle → dist/
 npm run preview   # serve the build → http://localhost:5181
 ```
+
+### Cloning on Windows
+
+The repo is portable — no absolute paths, no symlinks, no native modules — but
+two Windows specifics are worth knowing.
+
+```powershell
+git clone https://github.com/garvit-pandia/threejs1.git
+cd threejs1
+npm install
+npm run dev
+```
+
+1. **Long paths.** `node_modules` nests deeply and Windows still caps paths at
+   260 characters by default. Enable long paths once, before installing:
+
+   ```powershell
+   git config --global core.longpaths true
+   ```
+
+   and, in an **admin** PowerShell (or via Group Policy):
+
+   ```powershell
+   New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" `
+     -Name LongPathsEnabled -Value 1 -PropertyType DWORD -Force
+   ```
+
+   If `npm install` fails with `ENAMETOOLONG` or `EPERM`, this is the cause.
+   Cloning somewhere short like `C:\dev\threejs1` also helps.
+
+2. **Line endings.** `.gitattributes` pins `text=auto eol=lf`, so a checkout
+   will not show every file as modified. Leave `core.autocrlf` at its default;
+   do **not** set it to `input` here.
+
+Two behavioural differences from the Linux dev setup:
+
+- `server.watch.usePolling` is enabled in `vite.config.js`. It is required under
+  WSL2 to avoid serving stale modules; on native Windows it is harmless but
+  spends CPU polling. Clear the flag or set it to `false` if you prefer native
+  file watching.
+- Verification on this workspace uses a headless Chromium; on your machine just
+  open <http://localhost:5180> and drive the dashboard by hand (the four camera
+  presets, the sun slider, a planner dispatch).
+
+Ports **5180** (dev) and **5181** (preview) are pinned with `strictPort: true`
+so a collision fails fast instead of silently shifting to another port.
 
 The app is fully offline after checkout: all textures ship in
 `public/textures/` (~3.4 MB) and nothing is fetched from a CDN at runtime. If a
