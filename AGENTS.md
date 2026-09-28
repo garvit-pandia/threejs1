@@ -33,6 +33,16 @@ re-check the embedded copy in `index.html` (the two lists must stay identical).
 Canal/strait transits that legitimately touch terrain in the mask live in the
 `ALLOW` set of the script.
 
+## Layout contract
+
+- `#topbar` and `#bottombar` are **rows**: they must keep
+  `flex-direction: row` (they are `.panel`s, whose default is `column` — an
+  inherited-column regression previously cost 41% of the viewport).
+- `@media (max-width: 1000px)` turns the panel grid into a scrollable bottom
+  sheet. If you add a panel, confirm it still sizes to content there and that
+  it clears the fixed `#bottombar`.
+- Type floor: no functional text below 10.5px; interactive targets ≥34px tall.
+
 ## Verification surface
 
 `window.__app` exposes the verification surface (`shipments`, `alerts`, `stats`,

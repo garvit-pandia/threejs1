@@ -42,6 +42,18 @@ The app is fully offline after checkout; textures are never fetched from a CDN
 at runtime. If a texture is missing it falls back to an error log entry in
 `window.__app.errors` and a procedural placeholder.
 
+## Layout
+
+Three columns above 1000px: a stats/alert rail, the 3D view, and a
+shipments/planner rail, with single-row top and bottom bars.
+
+At **≤1000px** the panels move into a scrollable bottom sheet occupying the
+lower ~62% of the viewport; the upper part stays a clean drag/zoom area for the
+globe, the top bar pins to the top, and the legend bar pins to the bottom.
+
+Every interactive control is at least 34px tall, and no functional text is
+smaller than 10.5px.
+
 ## Maintenance
 
 `tools/seaway_check.py` validates the embedded maritime corridor graph against
@@ -51,6 +63,13 @@ terrain. Run it after any change to ports or waypoints:
 ```
 python3 tools/seaway_check.py
 ```
+
+## Quality loop
+
+The dashboard has been through a critique-and-improve loop with a dedicated
+reviewer agent scoring real screenshots against the running app. Findings and
+the resulting changes are recorded in `CHANGELOG.md`; that file also lists the
+known-open issues.
 
 ## Verification surface
 
