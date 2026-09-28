@@ -15,6 +15,11 @@ npm run dev        # → http://localhost:5180
 
 ![Earth view](docs/screenshots/earth.png)
 
+The sun is a single directional light and its azimuth is a live slider — drag
+it and the terminator sweeps across the planet:
+
+![Sun-azimuth sweep: the terminator and city lights rotate around the globe](docs/screenshots/terminator.gif)
+
 ---
 
 ## Contents
@@ -72,6 +77,8 @@ globe live.
 
 **Moon** (0.273 R at 2.6 R) is tidally locked on a 5.14°-inclined orbit, with
 its orbital angle driven by the simulation clock at the real 27.32-day period.
+
+![Moon view](docs/screenshots/moon.png)
 
 **Jupiter, Saturn, Mars and Neptune** sit on a stylised orrery ring around
 Earth, each with its own axial tilt and spin rate. Saturn carries an
@@ -165,6 +172,11 @@ wrapping, it sheds non-essential chrome at 1560, 1460, 1360, 1280, 1200 and
 | Pause / 1× / 2× / 4× | Simulation speed |
 | Click a row, alert or vessel | Select and fly to that shipment |
 
+The four camera presets fly the camera on eased tweens — Earth, the full
+system, the Moon, and a follow-cam locked to a vessel:
+
+![Camera preset flythrough: Earth, System, Moon, Earth](docs/screenshots/presets.gif)
+
 ## Getting started
 
 Requires **Node 18+** (Vite 5). Python 3 with Pillow is needed only for the
@@ -243,7 +255,7 @@ vite.config.js              pinned ports, polling watcher
 public/textures/            11 equirectangular maps (day, night, clouds, normal,
                             specular, moon, Jupiter, Saturn + ring, Mars, Neptune)
 tools/seaway_check.py       offline validator for the maritime corridor graph
-docs/screenshots/           renders used in this README
+docs/screenshots/           renders and demo GIFs used in this README
 AGENTS.md                   working rules and invariants for this repo
 CHANGELOG.md                the critique-and-improve loop, round by round
 ```
@@ -293,6 +305,8 @@ Built with [Three.js](https://threejs.org) (MIT) via [Vite](https://vitejs.dev).
 
 Recorded honestly rather than hidden — the full history is in
 [`CHANGELOG.md`](CHANGELOG.md).
+
+![Below 1000px the panels fold into a scrollable bottom sheet under a compact top bar](docs/screenshots/narrow.png)
 
 - **This is a simulation, not live data.** All shipments, positions, incidents
   and statistics are generated client-side. Nothing is fetched and there is no
